@@ -179,6 +179,24 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
 .utable td{padding:7px 6px;border-bottom:1px solid #eef0f4;vertical-align:middle}
 .utable td.c{text-align:center}
 .utable input[type=checkbox]{width:auto}
+.pwwrap{position:relative}
+.pwwrap input{padding-right:42px}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:30px;border:0;background:none;cursor:pointer;border-radius:6px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.eye:hover{background:#eef1f6;color:var(--ink)}
+.eye svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@keyframes girar{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:15px;height:15px;border:2.2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:girar .7s linear infinite;vertical-align:-3px;margin-right:8px;opacity:.9}
+.spin.big{width:34px;height:34px;border-width:3.5px;color:var(--accent);margin:0}
+#bootLoader{position:fixed;inset:0;z-index:300;background:linear-gradient(135deg,#eef3fb,#f7f1fb);display:flex;align-items:center;justify-content:center;transition:opacity .25s}
+#bootLoader.hide{opacity:0;pointer-events:none}
+#bootLoader .bl{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--muted);font-size:14px}
+.btn.primary:disabled{opacity:.85;cursor:progress}
+.codebar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.codebar .late{color:#c02626;font-weight:600}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;font:inherit;font-size:12.5px;padding:2px 0;white-space:nowrap}
+.linkbtn:disabled{color:#9aa1b0;cursor:default}
+.linkbtn.attn{font-weight:700;animation:attn 1s ease-in-out 3}
+@keyframes attn{50%{transform:scale(1.12)}}
 .rh{fill:#fff;stroke:var(--hl);stroke-width:2;cursor:nwse-resize!important}
 .furn.match .fbody{stroke:var(--match);stroke-width:2.5}
 .furn.hl .fbody{stroke:var(--hl);stroke-width:3.5;animation:pulse .9s ease-in-out infinite alternate}
@@ -197,6 +215,7 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
 </style>
 </head>
 <body>
+<div id="bootLoader"><div class="bl"><span class="spin big"></span><div id="bootMsg">Carregando…</div></div></div>
 <div id="auth" hidden>
   <div class="authcard">
     <div class="brand">Mapa de Materiais<small>Laboratório GIIMUS</small></div>
@@ -205,7 +224,7 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
       <label>E-mail</label>
       <input name="email" type="email" required data-label="E-mail" autocomplete="username" placeholder="seu.nome@usp.br">
       <label>Senha</label>
-      <input name="password" type="password" required data-label="Senha" autocomplete="current-password">
+      <div class="pwwrap"><input name="password" type="password" required data-label="Senha" autocomplete="current-password"><button type="button" class="eye" tabindex="-1" title="Mostrar senha" aria-label="Mostrar senha"></button></div>
       <div class="actions"><button class="btn primary" type="submit" style="flex:1">Entrar</button></div>
       <p class="muted authhint">Primeiro acesso? Entre com o seu e-mail e a senha inicial que o laboratório passou. Em seguida você define a sua própria senha.</p>
       <p class="authlinks"><a href="#" id="goForgot">Esqueci minha senha</a></p>
@@ -214,11 +233,12 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
       <h3 id="setupTitle" style="margin-top:0">Defina a sua senha</h3>
       <p class="muted" id="setupInfo" style="margin-top:0"></p>
       <div id="codeWrap"><label>Código recebido por e-mail</label>
-        <input name="code" inputmode="numeric" maxlength="6" data-label="Código" placeholder="6 números" autocomplete="one-time-code"></div>
+        <input name="code" inputmode="numeric" maxlength="6" data-label="Código" placeholder="6 números" autocomplete="one-time-code">
+        <div class="codebar"><span id="codeStatus"></span><button type="button" class="linkbtn" id="resendBtn">Reenviar código</button></div></div>
       <label>Nova senha (mínimo 8 caracteres)</label>
-      <input name="pw1" type="password" required data-label="Nova senha" autocomplete="new-password">
+      <div class="pwwrap"><input name="pw1" type="password" required data-label="Nova senha" autocomplete="new-password"><button type="button" class="eye" tabindex="-1" title="Mostrar senha" aria-label="Mostrar senha"></button></div>
       <label>Repita a nova senha</label>
-      <input name="pw2" type="password" required data-label="Repita a nova senha" autocomplete="new-password">
+      <div class="pwwrap"><input name="pw2" type="password" required data-label="Repita a nova senha" autocomplete="new-password"><button type="button" class="eye" tabindex="-1" title="Mostrar senha" aria-label="Mostrar senha"></button></div>
       <div class="actions"><button class="btn primary" type="submit" style="flex:1">Salvar senha e entrar</button></div>
       <p class="authlinks"><a href="#" data-auth-back>← Voltar</a></p>
     </form>
@@ -416,7 +436,7 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
 /* ===================== SERVIDOR =====================
    Cole aqui a URL do App da Web do Google Apps Script (termina em /exec).
    Deixe vazio para usar o modo local (dados só neste navegador, sem login). */
-const API_URL = 'https://script.google.com/macros/s/AKfycbx3RVtIvlcGUVEFQCToGKicL4-6AaQvTkrutOWKeL7qct2I-Q92IgJOJ5ANHKUR582v/exec';
+const API_URL = '';
 const MODO_LOCAL = !API_URL;
 
 /* ===================== CONFIGURAÇÃO DA PLANTA =====================
@@ -681,12 +701,20 @@ function setSync(state, msg) {
   el.title = msg || '';
 }
 async function api(action, payload = {}) {
-  const r = await fetch(API_URL, {
+  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 45000);
+  let r;
+  try {
+    r = await fetch(API_URL, {
+    signal: ctrl.signal,
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // evita a checagem CORS extra do navegador
     body: JSON.stringify(Object.assign({ action, token: session && session.token }, payload)),
-  });
-  const j = await r.json();
+    });
+  } catch (err) {
+    const e = new Error(err.name === 'AbortError' ? 'timeout' : 'rede'); e.timeout = err.name === 'AbortError'; throw e;
+  } finally { clearTimeout(timer); }
+  let j;
+  try { j = await r.json(); } catch (err) { const e = new Error('resposta'); e.badResponse = true; throw e; }
   if (j.error === 'auth') {
     logout(j.message || 'Faça login novamente.');
     const e = new Error(j.message || 'auth'); e.auth = true; throw e;
@@ -713,6 +741,7 @@ async function pushNow() {
       setSync('ok');
     } else if (r.ok) {
       serverVersion = r.version;
+      cacheLocal();
       setSync(pendingPush ? 'pending' : 'ok');
     } else {
       setSync('error', r.error); toast('Não foi possível salvar: ' + esc(r.error || 'erro desconhecido'));
@@ -722,18 +751,28 @@ async function pushNow() {
   } finally { pushing = false; }
 }
 window.addEventListener('beforeunload', e => { if (pendingPush || pushing) { e.preventDefault(); e.returnValue = ''; } });
+const CACHE_KEY = 'labmap-cache';
+function cacheLocal() {        // guarda uma cópia para abrir o site na hora da próxima vez
+  if (MODO_LOCAL || !USER) return;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ email: USER.email, version: serverVersion, data: DB })); } catch (e) {}
+}
 function applyServerData(r) {
   DB = r.data && typeof r.data === 'object' ? r.data : structuredClone(SEED);
   serverVersion = Number(r.version) || 0;
   prepareDB();
   if (sel && sel.furn && !furnByCode(sel.furn)) sel = null;
   renderAll();
+  cacheLocal();
 }
 async function loadServer() {
-  setSync('saving'); $('#syncStatus').textContent = 'Carregando…';
+  setSync('saving'); $('#syncStatus').textContent = 'Atualizando…';
   const r = await api('getData');
   if (!r.ok) { setSync('error', r.error); uiAlert('Não foi possível carregar os dados: ' + (r.error || '')); return; }
-  applyServerData(r);
+  if (r.user) {
+    USER = r.user; applyPermissions();
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: session.token, user: r.user })); } catch (e) {}
+  }
+  if (!(r.version === serverVersion && DB && serverVersion > 0)) applyServerData(r);
   setSync(canEdit() ? 'ok' : 'readonly');
   clearInterval(pollTimer);
   pollTimer = setInterval(pollServer, 30000);
@@ -752,9 +791,74 @@ async function pollServer() {      // traz as alterações feitas por outras pes
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !MODO_LOCAL && USER) pollServer(); });
 
+/* ---------- carregamento e olho da senha ---------- */
+const EYE_ON = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.1 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.9 9.9 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+document.querySelectorAll('.pwwrap .eye').forEach(b => {
+  b.innerHTML = EYE_ON;
+  b.addEventListener('click', () => {
+    const inp = b.parentElement.querySelector('input'), show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    b.innerHTML = show ? EYE_OFF : EYE_ON;
+    b.title = b.ariaLabel = show ? 'Esconder senha' : 'Mostrar senha';
+    inp.focus();
+  });
+});
+function hidePasswords() {
+  document.querySelectorAll('.pwwrap input').forEach(i => { i.type = 'password'; });
+  document.querySelectorAll('.pwwrap .eye').forEach(b => { b.innerHTML = EYE_ON; b.title = b.ariaLabel = 'Mostrar senha'; });
+}
+function showLoader(msg) { $('#bootMsg').textContent = msg || 'Carregando…'; $('#bootLoader').classList.remove('hide'); }
+function hideLoader() { $('#bootLoader').classList.add('hide'); }
+
+/* ---------- código por e-mail: validade e reenvio ---------- */
+const codeInfo = { expiresAt: 0, resendAt: 0 };
+let codeTimer = null;
+const hhmm = t => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function setCodeInfo(r) {
+  const now = Date.now();
+  if (r.expiresIn != null) codeInfo.expiresAt = now + r.expiresIn * 1000;
+  codeInfo.resendAt = now + (r.wait || 0) * 1000;
+  clearInterval(codeTimer); codeTimer = setInterval(tickCode, 1000); tickCode();
+}
+function codeMessage(r, email) {
+  if (r.sent === false) return `Você já pediu um código há menos de 1 minuto. Ele continua valendo até ${hhmm(codeInfo.expiresAt)}: confira o seu e-mail (e a caixa de spam).`;
+  if (r.replaced) return `Enviamos um código NOVO para ${email}. O código anterior deixou de valer: use o do e-mail mais recente.`;
+  return `Enviamos um código de 6 números para ${email}. Confira também a caixa de spam.`;
+}
+function tickCode() {
+  const now = Date.now(), st = $('#codeStatus'), rb = $('#resendBtn');
+  if (!st) return;
+  if (!codeInfo.expiresAt) st.textContent = '';
+  else if (now < codeInfo.expiresAt) st.innerHTML = `Código vale por mais <b>${mmss(codeInfo.expiresAt - now)}</b> (até ${hhmm(codeInfo.expiresAt)})`;
+  else st.innerHTML = '<span class="late">O código expirou.</span>';
+  const wait = codeInfo.resendAt - now;
+  if (rb.dataset.busy !== '1') {
+    rb.disabled = wait > 0;
+    rb.textContent = wait > 0 ? `Reenviar em ${Math.ceil(wait / 1000)} s` : 'Reenviar código';
+    if (codeInfo.expiresAt && now >= codeInfo.expiresAt && !rb.classList.contains('attn') && wait <= 0) rb.classList.add('attn');
+  }
+  if ($('#setupForm').hidden) { clearInterval(codeTimer); codeTimer = null; }
+}
+$('#resendBtn').addEventListener('click', async () => {
+  const rb = $('#resendBtn');
+  rb.dataset.busy = '1'; rb.disabled = true; rb.classList.remove('attn'); rb.innerHTML = '<span class="spin" style="width:11px;height:11px;margin-right:5px"></span>Enviando…';
+  try {
+    const r = await api('requestReset', { email: authEmail });
+    if (r.ok && r.emailEnabled === false) { showAuth('setupForm', 'O envio de código por e-mail está desligado. Peça a um administrador para resetar a sua senha.'); return; }
+    setCodeInfo(r);
+    SG.code.value = '';
+    showAuth('setupForm', codeMessage(r, authEmail), true);
+    SG.code.focus();
+  } catch (err) { if (!err.auth) showAuth('setupForm', netError(err)); }
+  finally { rb.dataset.busy = ''; tickCode(); }
+});
+
 /* ---------- tela de login ---------- */
 let authEmail = '', authInitial = '';
 function showAuth(view, msg, info) {
+  hideLoader();
   $('#auth').hidden = false;
   ['loginForm', 'setupForm', 'forgotForm'].forEach(id => { $('#' + id).hidden = id !== view; });
   const m = $('#authMsg');
@@ -762,61 +866,95 @@ function showAuth(view, msg, info) {
   const first = $('#' + view).querySelector('input:not([type=hidden])');
   if (first) setTimeout(() => (view === 'loginForm' && first.value ? $('#loginForm').password : first).focus(), 30);
 }
-function busy(form, on) { form.querySelectorAll('button').forEach(b => { b.disabled = on; }); form.style.opacity = on ? .6 : 1; }
+function busy(form, on, msg) {
+  form.dataset.busy = on ? '1' : '';
+  form.querySelectorAll('button').forEach(b => {
+    b.disabled = on;
+    if (b.classList.contains('primary')) {
+      if (on) { b.dataset.label = b.dataset.label || b.textContent; b.innerHTML = '<span class="spin"></span>Aguarde…'; }
+      else if (b.dataset.label) b.textContent = b.dataset.label;
+    }
+  });
+  form.querySelectorAll('input').forEach(i => { i.readOnly = on; });
+  if (on) { const m = $('#authMsg'); m.hidden = false; m.className = 'authmsg info'; m.textContent = msg || 'Conectando ao servidor…'; }
+}
+function netError(err) {
+  if (err.timeout) return 'O servidor demorou demais para responder. Tente de novo em alguns segundos.';
+  if (err.badResponse) return 'O servidor respondeu de um jeito inesperado. Confira se a implantação do Apps Script está como "Qualquer pessoa" e numa versão nova.';
+  return 'Sem conexão com o servidor. Tente de novo.';
+}
 async function enter(r) {
   session = { token: r.token };
   USER = r.user;
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: r.token, user: r.user })); } catch (e) {}
-  $('#auth').hidden = true;
+  const m = $('#authMsg'); m.hidden = false; m.className = 'authmsg info'; m.textContent = 'Carregando os dados do laboratório…';
   applyPermissions();
-  await loadServer();
+  try { await loadServer(); }
+  finally { hidePasswords(); $('#auth').hidden = true; }
 }
 function logout(msg) {
-  session = null; USER = null; clearInterval(pollTimer);
-  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  session = null; USER = null; serverVersion = 0; usersList = []; clearInterval(pollTimer);
+  try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(CACHE_KEY); } catch (e) {}
   showAuth('loginForm', msg || '', !!msg && /saiu/.test(msg));
 }
 const LG = $('#loginForm'), SG = $('#setupForm'), FG = $('#forgotForm');
 onSubmit(LG, async () => {
-  busy(LG, true);
+  busy(LG, true, 'Entrando…');
   try {
     const email = LG.email.value.trim().toLowerCase(), password = LG.password.value;
     const r = await api('login', { email, password });
     if (r.needSetup) {
       authEmail = email; authInitial = password;
       $('#setupTitle').textContent = 'Primeiro acesso: defina a sua senha';
-      $('#setupInfo').textContent = r.codeSent ? `Enviamos um código de 6 números para ${email}. Confira também a caixa de spam.` : 'Escolha a senha que você vai usar daqui para frente.';
       $('#codeWrap').hidden = !r.codeSent;
-      SG.reset(); showAuth('setupForm');
+      SG.reset();
+      if (r.codeSent) {
+        setCodeInfo(r);
+        $('#setupInfo').textContent = '';
+        showAuth('setupForm', codeMessage(r, email), true);
+      } else { $('#setupInfo').textContent = 'Escolha a senha que você vai usar daqui para frente.'; showAuth('setupForm'); }
     } else if (r.ok) { LG.password.value = ''; await enter(r); }
     else showAuth('loginForm', r.error || 'Não foi possível entrar.');
-  } catch (err) { if (!err.auth) showAuth('loginForm', 'Sem conexão com o servidor. Tente de novo.'); }
+  } catch (err) { if (!err.auth) showAuth('loginForm', netError(err)); }
   finally { busy(LG, false); }
 });
 onSubmit(SG, async () => {
   if (SG.pw1.value !== SG.pw2.value) { showAuth('setupForm', 'As duas senhas não são iguais.'); return; }
   if (SG.pw1.value.length < 8) { showAuth('setupForm', 'A senha precisa ter pelo menos 8 caracteres.'); return; }
+  if (!$('#codeWrap').hidden && codeInfo.expiresAt && Date.now() > codeInfo.expiresAt) { codeInfo.resendAt = 0; tickCode(); showAuth('setupForm', 'O código expirou. Clique em “Reenviar código” para receber um novo.'); $('#resendBtn').classList.add('attn'); return; }
   if (!$('#codeWrap').hidden && !/^\d{6}$/.test(SG.code.value.trim())) { showAuth('setupForm', 'Digite o código de 6 números que chegou no seu e-mail.'); return; }
-  busy(SG, true);
+  busy(SG, true, 'Salvando a sua senha… isso pode levar alguns segundos.');
   try {
     const r = await api('setPassword', { email: authEmail, code: SG.code.value.trim(), initialPassword: authInitial, newPassword: SG.pw1.value });
-    if (r.ok) { SG.reset(); await enter(r); toast('Senha definida. Bem-vindo(a)!'); }
-    else showAuth('setupForm', r.error || 'Não foi possível salvar a senha.');
-  } catch (err) { if (!err.auth) showAuth('setupForm', 'Sem conexão com o servidor. Tente de novo.'); }
+    if (r.ok) { SG.reset(); codeInfo.expiresAt = 0; await enter(r); toast('Senha definida. Bem-vindo(a)!'); }
+    else if (r.alreadySet) {
+      SG.reset(); LG.email.value = authEmail; LG.password.value = '';
+      showAuth('loginForm', r.error, true);
+    } else if (r.codeError === 'errado') {
+      showAuth('setupForm', r.error); SG.code.select();
+    } else if (r.codeError) {      // expirado ou bloqueado: precisa de um código novo
+      SG.code.value = ''; codeInfo.expiresAt = Math.min(codeInfo.expiresAt, Date.now()); codeInfo.resendAt = 0;
+      showAuth('setupForm', r.error); tickCode();
+      $('#resendBtn').classList.add('attn');
+    } else showAuth('setupForm', r.error || 'Não foi possível salvar a senha.');
+  } catch (err) {
+    if (!err.auth) showAuth('setupForm', netError(err) + ' Não deu para confirmar se a senha foi salva: clique em “Salvar senha e entrar” de novo. Se ela já tiver sido salva, o sistema avisa.');
+  }
   finally { busy(SG, false); }
 });
 onSubmit(FG, async () => {
-  busy(FG, true);
+  busy(FG, true, 'Enviando o código…');
   try {
     const email = FG.email.value.trim().toLowerCase();
     const r = await api('requestReset', { email });
     if (r.ok && r.emailEnabled === false) { showAuth('forgotForm', 'A troca de senha por e-mail está desligada. Peça a um administrador para resetar a sua senha.'); return; }
     authEmail = email; authInitial = '';
     $('#setupTitle').textContent = 'Crie uma senha nova';
-    $('#setupInfo').textContent = `Se ${email} estiver cadastrado, um código de 6 números foi enviado para ele. Confira também a caixa de spam.`;
+    $('#setupInfo').textContent = '';
     $('#codeWrap').hidden = false;
-    SG.reset(); showAuth('setupForm');
-  } catch (err) { showAuth('forgotForm', 'Sem conexão com o servidor. Tente de novo.'); }
+    SG.reset(); setCodeInfo(r);
+    showAuth('setupForm', r.sent === false ? codeMessage(r, email) : `Se ${email} estiver cadastrado, enviamos um código de 6 números para ele${r.replaced ? ' (o código anterior deixou de valer)' : ''}. Confira também a caixa de spam.`, true);
+  } catch (err) { showAuth('forgotForm', netError(err)); }
   finally { busy(FG, false); }
 });
 $('#goForgot').onclick = e => { e.preventDefault(); FG.email.value = LG.email.value; showAuth('forgotForm'); };
@@ -829,13 +967,22 @@ $('#logoutBtn').onclick = async () => {
 /* ---------- administração de usuários ---------- */
 async function openUsers() {
   $('#usersModal').hidden = false;
+  if (usersList.length) drawUsers();
   await renderUsers();
 }
+let usersList = [];
 async function renderUsers() {
   const box = $('#usersList');
   try {
     const r = await api('listUsers');
     if (!r.ok) { box.innerHTML = `<p class="muted">${esc(r.error || 'Erro')}</p>`; return; }
+    usersList = r.users;
+    drawUsers();
+  } catch (err) { if (!err.auth) box.innerHTML = '<p class="muted">Sem conexão com o servidor.</p>'; }
+}
+function drawUsers() {
+  const box = $('#usersList'), r = { users: usersList };
+  {
     const me = USER.email;
     box.innerHTML = `<table class="utable"><thead><tr><th>E-mail</th><th>Situação</th><th class="c">Editar</th><th class="c">Exportar</th><th class="c">Admin</th><th></th></tr></thead><tbody>` +
       r.users.sort((a, b) => (b.admin - a.admin) || a.email.localeCompare(b.email)).map(u => `<tr data-user="${esc(u.email)}">
@@ -848,7 +995,7 @@ async function renderUsers() {
           <button class="btn small" data-uact="reset" title="Volta para a senha inicial; a pessoa define uma nova no próximo acesso">Resetar senha</button>
           ${u.email === me ? '' : '<button class="btn small" data-uact="del">Remover</button>'}
         </td></tr>`).join('') + '</tbody></table>';
-  } catch (err) { if (!err.auth) box.innerHTML = '<p class="muted">Sem conexão com o servidor.</p>'; }
+  }
 }
 $('#usersBtn').onclick = openUsers;
 $('#usersClose').onclick = () => { $('#usersModal').hidden = true; };
@@ -861,29 +1008,38 @@ onSubmit(UF, async () => {
     if (!r.ok) { uiAlert(r.error || 'Não foi possível adicionar.'); return; }
     UF.reset(); UF.editar.checked = true;
     toast(`${esc(user.email)} adicionado. No primeiro acesso, a pessoa usa a senha inicial e depois define a própria senha.`);
-    renderUsers();
+    const ex = usersList.find(u => u.email === user.email);
+    if (ex) Object.assign(ex, user); else usersList.push(Object.assign({ aguardandoPrimeiroAcesso: true, ultimoAcesso: '' }, user));
+    drawUsers();
   } catch (err) { if (!err.auth) uiAlert('Sem conexão com o servidor.'); }
 });
 $('#usersList').addEventListener('change', async e => {
   const cb = e.target.closest('[data-uperm]'); if (!cb) return;
   const tr = cb.closest('tr'), get = k => tr.querySelector(`[data-uperm=${k}]`).checked;
+  const user = { email: tr.dataset.user, editar: get('editar'), exportar: get('exportar'), admin: get('admin') };
+  const u = usersList.find(x => x.email === user.email), antes = u && Object.assign({}, u);
+  if (u) { Object.assign(u, user); if (u.admin) { u.editar = true; u.exportar = true; } drawUsers(); }   // mostra na hora
   try {
-    const r = await api('saveUser', { user: { email: tr.dataset.user, editar: get('editar'), exportar: get('exportar'), admin: get('admin') } });
-    if (!r.ok) uiAlert(r.error || 'Não foi possível alterar.');
-  } catch (err) { /* */ }
-  renderUsers();
+    const r = await api('saveUser', { user });
+    if (!r.ok) { uiAlert(r.error || 'Não foi possível alterar.'); if (u) Object.assign(u, antes); drawUsers(); }
+  } catch (err) { if (!err.auth) { uiAlert('Sem conexão com o servidor. A alteração não foi salva.'); if (u) Object.assign(u, antes); drawUsers(); } }
 });
 $('#usersList').addEventListener('click', async e => {
   const b = e.target.closest('[data-uact]'); if (!b) return;
   const email = b.closest('tr').dataset.user;
   if (b.dataset.uact === 'del') {
     if (!(await uiConfirm(`Remover o acesso de ${email}?`, 'Remover'))) return;
-    const r = await api('removeUser', { email }); if (!r.ok) uiAlert(r.error || 'Erro');
+    b.disabled = true; b.textContent = 'Removendo…';
+    const r = await api('removeUser', { email });
+    if (!r.ok) uiAlert(r.error || 'Erro'); else usersList = usersList.filter(u => u.email !== email);
   } else {
     if (!(await uiConfirm(`Resetar a senha de ${email}? A pessoa vai entrar de novo com a senha inicial e definir uma nova.`, 'Resetar', false))) return;
-    const r = await api('resetUser', { email }); if (!r.ok) uiAlert(r.error || 'Erro'); else toast(`Senha de ${esc(email)} resetada.`);
+    b.disabled = true; b.textContent = 'Resetando…';
+    const r = await api('resetUser', { email });
+    if (!r.ok) uiAlert(r.error || 'Erro');
+    else { toast(`Senha de ${esc(email)} resetada.`); const u = usersList.find(x => x.email === email); if (u) u.aguardandoPrimeiroAcesso = true; }
   }
-  renderUsers();
+  drawUsers();
 });
 async function fetchShared() {
   try {
@@ -915,6 +1071,7 @@ async function boot() {
     prepareDB();
     applyPermissions(); setSync('local');
     renderAll();
+    hideLoader();
     return;
   }
   DB = structuredClone(SEED); prepareDB(); applyPermissions(); renderAll();   // fundo enquanto não loga
@@ -922,11 +1079,15 @@ async function boot() {
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) {}
   if (!saved || !saved.token) { showAuth('loginForm'); return; }
   session = { token: saved.token }; USER = saved.user;
-  try {
-    const r = await api('me');
-    if (r.ok) { USER = r.user; localStorage.setItem(SESSION_KEY, JSON.stringify({ token: saved.token, user: r.user })); applyPermissions(); await loadServer(); }
-    else showAuth('loginForm', r.error);
-  } catch (err) { if (!err.auth) showAuth('loginForm', 'Sem conexão com o servidor. Tente de novo.'); }
+  applyPermissions();
+  try {   // mostra na hora a última cópia salva neste navegador
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (c && c.email === USER.email && c.data) { DB = c.data; serverVersion = c.version || 0; prepareDB(); renderAll(); hideLoader(); }
+    else showLoader('Carregando os dados do laboratório…');
+  } catch (e) {}
+  try { await loadServer(); }
+  catch (err) { if (!err.auth) { setSync('error', 'Sem conexão'); toast('Sem conexão com o servidor. Mostrando a última versão salva neste computador.'); } }
+  finally { if ($('#auth').hidden) hideLoader(); }
 }
 function prepareDB() {
   delete DB.corridor;
@@ -1599,6 +1760,7 @@ function renderTree() {
 function onSubmit(form, handler) {
   form.addEventListener('submit', e => e.preventDefault());
   const run = () => {
+    if (form.dataset.busy === '1') return;      // evita enviar duas vezes
     for (const el of form.elements) {
       if (el.required && !String(el.value).trim()) {
         el.focus();
