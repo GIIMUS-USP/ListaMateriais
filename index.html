@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa de Materiais — Laboratório</title>
+<style>
+:root{
+  --bg:#f4f5f8; --panel:#fff; --ink:#1d2433; --muted:#6b7385; --line:#d9dde5;
+  --accent:#2f6fde; --hl:#ff9f1a; --match:#2f6fde;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+header h1{font-size:17px;margin:0;white-space:nowrap}
+header h1 small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+#q{flex:1;max-width:620px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+#q:focus{outline:2px solid var(--accent);border-color:transparent}
+main{display:grid;grid-template-columns:400px 1fr;gap:16px;padding:16px;height:calc(100vh - 64px)}
+aside,.mapwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:11px 3px;border:0;background:none;cursor:pointer;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.pane{display:none;padding:14px;overflow:auto;flex:1}
+.pane.on{display:block}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px}
+h3:first-child{margin-top:0}
+.muted{color:var(--muted)}
+code,.code{font-family:ui-monospace,Consolas,monospace;background:#eef1f6;border-radius:4px;padding:1px 6px;font-size:12.5px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:none}
+.row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:7px;cursor:pointer}
+.row:hover{background:#f1f4fa}
+.row.on{background:#fff4e0}
+.row .name{flex:1;min-width:0}
+.row .name div:last-child{color:var(--muted);font-size:12px}
+.icon{border:0;background:none;cursor:pointer;color:var(--muted);padding:3px 5px;border-radius:5px;font-size:13px}
+.icon:hover{background:#e6eaf2;color:var(--ink)}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;background:#fff}
+textarea{resize:vertical;min-height:54px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btn{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;font:inherit}
+.btn:hover{background:#f1f4fa}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:4px 9px;font-size:12px}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.preview{margin-top:12px;padding:10px;border-radius:8px;background:#f1f4fa;font-size:13px}
+.preview b{font-family:ui-monospace,Consolas,monospace;font-size:16px}
+details{border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+summary{padding:9px 12px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:8px}
+summary .count{margin-left:auto;font-weight:400;color:var(--muted);font-size:12px}
+.tf{padding:0 10px 8px}
+.tfh,.tc{padding:6px 8px;border-radius:6px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.tfh{font-weight:500}
+.tc{padding-left:24px;font-size:13px}
+.tfh:hover,.tc:hover{background:#f1f4fa}
+.tc .dots{margin-left:auto;display:flex;gap:3px}
+.mapbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mapbar .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+.mapbar .legend span{display:flex;align-items:center;gap:5px}
+.mapbody{flex:1;display:grid;grid-template-columns:1fr 300px;min-height:0}
+.svgbox{padding:10px;display:flex;justify-content:center;align-items:center;min-height:0;background:#fafbfc}
+svg{max-width:100%;max-height:100%;height:100%;user-select:none}
+#info{border-left:1px solid var(--line);padding:14px;overflow:auto}
+#banner{display:none;background:#fff4e0;border-bottom:1px solid #ffd99a;padding:9px 14px;font-size:13px}
+#banner.on{display:block}
+/* SVG */
+.outer{fill:#fff;stroke:#1d2433;stroke-width:3}
+.fixed rect{fill:#eef0f4;stroke:#9aa1b0;stroke-width:1.2}
+.fixed.capela rect{fill:url(#hatch)}
+.flabel{font-size:11px;fill:#6b7385;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.zone rect{fill:#fff;stroke:none;cursor:pointer;transition:fill .2s}
+.zwall{stroke:#1d2433;stroke-width:2;stroke-linecap:square;pointer-events:none}
+.zwall.on{stroke:var(--hl);stroke-width:3}
+.zone:hover rect{fill:#f6f8fc}
+.zone.hl rect{fill:#fff3dc}
+.zlabel{font-size:46px;font-weight:700;fill:#1d2433;opacity:.08;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.zone.hl .zlabel{opacity:.25;fill:var(--hl)}
+.ztag{font-size:10px;font-weight:600;fill:#6b7385;pointer-events:none}
+.fbody{fill:#e7ebf2;stroke:#4a5263;stroke-width:1.2}
+.furn{cursor:grab;touch-action:none}
+.dragging,.dragging *{cursor:grabbing!important}
+.drawing svg,.drawing .zone rect,.drawing .furn{cursor:crosshair!important}
+.draft{fill:rgba(47,111,222,.15);stroke:var(--accent);stroke-width:2;stroke-dasharray:5 3}
+.btn.small.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dgap{stroke:#fff;stroke-width:5}
+.djamb{stroke:#1d2433;stroke-width:2}
+.dleaf{stroke:#4a5263;stroke-width:1.6}
+.darc{fill:none;stroke:#8a92a3;stroke-width:1;stroke-dasharray:3 2}
+.dhit{stroke:transparent;stroke-width:12}
+.door{cursor:grab;touch-action:none}
+.door.hl .dleaf,.door.hl .djamb{stroke:var(--hl);stroke-width:2.5}
+.door.hl .darc{stroke:var(--hl)}
+.block{cursor:grab;touch-action:none}
+.block > rect:first-child{fill:#f3f0e8;stroke:#7a6f5a;stroke-width:1.4}
+.block.hatch > rect:first-child{fill:url(#hatch);stroke:#7a8090;stroke-width:1.3}
+.block.match > rect:first-child{stroke:var(--match);stroke-width:2.5}
+.block.hl > rect:first-child{stroke:var(--hl);stroke-width:3}
+.blabel{fill:#4a4232;text-anchor:middle;dominant-baseline:middle;pointer-events:none;font-weight:600}
+.block.hatch .blabel{fill:#6b7385;font-weight:400}
+#modal{position:fixed;inset:0;background:rgba(20,25,35,.35);display:flex;align-items:center;justify-content:center;z-index:100}
+#modal[hidden]{display:none}
+.mbox{background:#fff;border-radius:12px;padding:18px 20px;max-width:400px;width:calc(100% - 40px);box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.mbox p{margin:0;font-size:15px;line-height:1.45}
+#mok.danger{background:#d93636;border-color:#d93636}
+.furn:hover .fbody{stroke:var(--accent);stroke-width:2}
+.block:hover > rect:first-child{stroke:var(--accent);stroke-width:2.2}
+.furn.hl:hover .fbody{stroke:var(--hl);stroke-width:3.5}
+.block.hl:hover > rect:first-child{stroke:var(--hl);stroke-width:3}
+.cab{fill:#dde3ec;stroke:#5b6475;stroke-width:1;cursor:pointer}
+.cab.cabhl{stroke:var(--hl);stroke-width:2.2;fill:#ffe9c7}
+.cablabel{font-size:7.5px;font-weight:700;fill:#5b6475;pointer-events:none;dominant-baseline:middle}
+.cablabel.on{fill:var(--hl)}
+.loan{border:1px solid var(--line);border-left:4px solid #7c4dcc;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.loan.late{border-left-color:#d93636;background:#fff6f6}
+.loan.done{border-left-color:#30a46c;opacity:.8}
+.loan .lt{display:flex;align-items:center;gap:8px;font-weight:600}
+.loan .lt span:first-child{flex:1}
+.loan .ld{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.loan .ld b{color:var(--ink);font-weight:500}
+.loan .actions{margin-top:8px}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;white-space:nowrap}
+.badge.open{background:#efe7fb;color:#6a3fbf}
+.badge.late{background:#fde2e2;color:#c02626}
+.badge.done{background:#ddf3e6;color:#1f7a4d}
+#loanFilter .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.block.alm > rect:first-child{fill:#efe7fb;stroke:#7c4dcc;stroke-width:1.8}
+.block.alm .blabel{fill:#5a2fb0}
+.almout{font-size:7px;fill:#8a7bb0;text-anchor:middle;font-style:italic;pointer-events:none}
+.almcount{font-size:8px;fill:#7c4dcc;text-anchor:middle;dominant-baseline:middle;pointer-events:none;font-weight:600}
+.almcount.late{fill:#c02626}
+.equip{cursor:grab;touch-action:none}
+.equip .ebody{stroke:var(--ec);stroke-width:1.6}
+.equip.mobile .ebody{stroke-dasharray:4 2.5}
+.equip.locked{cursor:pointer}
+.equip .eicon{fill:none;stroke:var(--ec);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.equip .elabel{font-size:7.5px;font-weight:600;fill:var(--ec);text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:2.5}
+.equip .ebadge{fill:var(--ec);pointer-events:none}
+.equip .ebadgei{stroke:#fff;stroke-width:1;fill:none;pointer-events:none}
+.equip:hover .ebody{stroke-width:2.4}
+.equip.match .ebody{stroke:var(--match);stroke-width:2.6}
+.equip.hl .ebody{stroke:var(--hl);stroke-width:3}
+#auth{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,#eef3fb,#f7f1fb);display:flex;align-items:center;justify-content:center;padding:20px}
+#auth[hidden],#usersModal[hidden]{display:none}
+.authcard{background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(30,40,70,.15);padding:26px 28px;width:100%;max-width:380px}
+.authcard .brand{font-size:21px;font-weight:700;margin-bottom:14px}
+.authcard .brand small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
+.authmsg{padding:9px 11px;border-radius:8px;font-size:13px;margin-bottom:6px;background:#fde2e2;color:#a61b1b}
+.authmsg.info{background:#e7f0ff;color:#1d4fb8}
+.authhint{font-size:12px;margin:12px 0 0}
+.authlinks{font-size:13px;margin:10px 0 0;text-align:center}
+.authlinks a{color:var(--accent)}
+#userBox{display:flex;align-items:center;gap:8px;margin-left:auto;white-space:nowrap}
+#userEmail{font-size:12.5px}
+.sync{font-size:12px;padding:3px 9px;border-radius:12px;background:#eef1f6;color:var(--muted)}
+.sync.ok{background:#ddf3e6;color:#1f7a4d}
+.sync.saving,.sync.pending{background:#fff3dc;color:#9a6200}
+.sync.error{background:#fde2e2;color:#c02626}
+.sync.local{background:#efe7fb;color:#6a3fbf}
+body.noexport .needexport,body.noadmin .needadmin{display:none!important}
+body.readonly .tabs [data-tab=cadastro],body.readonly .tabs [data-tab=config],body.readonly [data-draw],body.readonly #eqKind,
+body.readonly #loanForm,body.readonly #loanTitle,body.readonly [data-edit],body.readonly [data-del],body.readonly [data-loan-act],
+body.readonly [data-addhere],body.readonly .rh,body.readonly [data-fact],body.readonly [data-cabadd],body.readonly [data-cabdel],
+body.readonly [data-renum],body.readonly [data-eq-act],body.readonly [data-block-act],body.readonly [data-door-act],
+body.readonly [data-goalm="new"]{display:none!important}
+body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .door{cursor:pointer}
+#usersModal{position:fixed;inset:0;z-index:150;background:rgba(20,25,35,.35);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.upanel{background:#fff;border-radius:12px;width:100%;max-width:760px;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.uhead{display:flex;align-items:center;justify-content:space-between}
+.uhead h2{margin:0;font-size:18px}
+.uform{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;background:#f6f8fc;border-radius:8px;margin-bottom:10px}
+.uform input[type=email]{flex:1;min-width:200px}
+.chk{display:flex!important;align-items:center;gap:5px;margin:0!important;color:var(--ink)!important;font-size:13px!important;white-space:nowrap}
+.chk input{width:auto}
+.utable{width:100%;border-collapse:collapse;font-size:13px}
+.utable th{text-align:left;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding:6px;border-bottom:1px solid var(--line)}
+.utable td{padding:7px 6px;border-bottom:1px solid #eef0f4;vertical-align:middle}
+.utable td.c{text-align:center}
+.utable input[type=checkbox]{width:auto}
+.rh{fill:#fff;stroke:var(--hl);stroke-width:2;cursor:nwse-resize!important}
+.furn.match .fbody{stroke:var(--match);stroke-width:2.5}
+.furn.hl .fbody{stroke:var(--hl);stroke-width:3.5;animation:pulse .9s ease-in-out infinite alternate}
+@keyframes pulse{from{stroke-opacity:1}to{stroke-opacity:.35}}
+.comp{fill:transparent;stroke:#8a92a3;stroke-width:.7}
+.comp:hover{fill:rgba(47,111,222,.12)}
+.comp.chl{fill:var(--hl);fill-opacity:.85}
+.clabel{font-size:8px;fill:#4a5263;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.fcode{font-size:9.5px;font-weight:700;fill:#1d2433;pointer-events:none}
+.placing svg{cursor:crosshair}
+.cband{fill:#fdf0e4;stroke:#f3c9a3;stroke-width:1}
+.cline{stroke:#f07a2a;stroke-width:1.2;stroke-dasharray:6 5}
+.clabel2{font-size:10px;font-weight:700;fill:#c25a14;text-anchor:middle;dominant-baseline:middle;letter-spacing:.12em;paint-order:stroke;stroke:#fdf0e4;stroke-width:4}
+@media(max-width:1100px){.mapbody{grid-template-columns:1fr}#info{border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:900px){main{grid-template-columns:1fr;height:auto}aside{max-height:none}.mapwrap{min-height:80vh}header{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div id="auth" hidden>
+  <div class="authcard">
+    <div class="brand">Mapa de Materiais<small>Laboratório GIIMUS</small></div>
+    <div id="authMsg" class="authmsg" hidden></div>
+    <form id="loginForm" autocomplete="on">
+      <label>E-mail</label>
+      <input name="email" type="email" required data-label="E-mail" autocomplete="username" placeholder="seu.nome@usp.br">
+      <label>Senha</label>
+      <input name="password" type="password" required data-label="Senha" autocomplete="current-password">
+      <div class="actions"><button class="btn primary" type="submit" style="flex:1">Entrar</button></div>
+      <p class="muted authhint">Primeiro acesso? Entre com o seu e-mail e a senha inicial que o laboratório passou. Em seguida você define a sua própria senha.</p>
+      <p class="authlinks"><a href="#" id="goForgot">Esqueci minha senha</a></p>
+    </form>
+    <form id="setupForm" hidden>
+      <h3 id="setupTitle" style="margin-top:0">Defina a sua senha</h3>
+      <p class="muted" id="setupInfo" style="margin-top:0"></p>
+      <div id="codeWrap"><label>Código recebido por e-mail</label>
+        <input name="code" inputmode="numeric" maxlength="6" data-label="Código" placeholder="6 números" autocomplete="one-time-code"></div>
+      <label>Nova senha (mínimo 8 caracteres)</label>
+      <input name="pw1" type="password" required data-label="Nova senha" autocomplete="new-password">
+      <label>Repita a nova senha</label>
+      <input name="pw2" type="password" required data-label="Repita a nova senha" autocomplete="new-password">
+      <div class="actions"><button class="btn primary" type="submit" style="flex:1">Salvar senha e entrar</button></div>
+      <p class="authlinks"><a href="#" data-auth-back>← Voltar</a></p>
+    </form>
+    <form id="forgotForm" hidden>
+      <h3 style="margin-top:0">Trocar a senha</h3>
+      <p class="muted" style="margin-top:0">Digite o seu e-mail. Vamos enviar um código para você criar uma senha nova.</p>
+      <label>E-mail</label>
+      <input name="email" type="email" required data-label="E-mail" placeholder="seu.nome@usp.br">
+      <div class="actions"><button class="btn primary" type="submit" style="flex:1">Enviar código</button></div>
+      <p class="authlinks"><a href="#" data-auth-back>← Voltar</a></p>
+    </form>
+  </div>
+</div>
+
+<div id="usersModal" hidden>
+  <div class="upanel">
+    <div class="uhead"><h2>Usuários</h2><button class="icon" id="usersClose" title="Fechar">✕</button></div>
+    <p class="muted" style="margin:0 0 10px">Quem for adicionado entra pela primeira vez com o próprio e-mail e a senha inicial, e depois define a sua senha.</p>
+    <form id="userForm" class="uform">
+      <input name="email" type="email" required data-label="E-mail" placeholder="email@usp.br">
+      <label class="chk"><input type="checkbox" name="editar" checked> Pode editar</label>
+      <label class="chk"><input type="checkbox" name="exportar"> Pode exportar</label>
+      <label class="chk"><input type="checkbox" name="admin"> Administrador</label>
+      <button class="btn primary" type="submit">Adicionar</button>
+    </form>
+    <div id="usersList"><p class="muted">Carregando…</p></div>
+  </div>
+</div>
+
+<header>
+  <h1>Mapa de Materiais<small>Laboratório · 1º andar</small></h1>
+  <input id="q" type="search" placeholder="Buscar material, categoria ou código (ex.: multímetro, 3A1G2)…" autocomplete="off">
+  <div id="userBox">
+    <span id="syncStatus" class="sync"></span>
+    <span id="userEmail" class="muted"></span>
+    <button class="btn small needexport" id="exportTop">Exportar JSON</button>
+    <button class="btn small needadmin" id="usersBtn">Usuários</button>
+    <button class="btn small" id="logoutBtn">Sair</button>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="tabs">
+      <button data-tab="busca" class="on">Busca</button>
+      <button data-tab="zonas">Salas</button>
+      <button data-tab="cadastro">Cadastrar</button>
+      <button data-tab="alm">Almoxarifado</button>
+      <button data-tab="config">Configurar</button>
+    </div>
+
+    <div class="pane on" id="busca">
+      <div id="results"></div>
+    </div>
+
+    <div class="pane" id="zonas">
+      <p class="muted" style="margin-top:0">Formato do código: <code>3A1G2</code> = Sala 3 · Armário 1 · Gaveta 2. Use <code>A</code> para armário, <code>B</code> para bancada, <code>G</code> para gaveta e <code>P</code> para prateleira. Armários dentro de bancadas: <code>3B1A2G1</code> = Sala 3 · Bancada 1 · Armário 2 · Gaveta 1.</p>
+      <div id="tree"></div>
+    </div>
+
+    <div class="pane" id="cadastro">
+      <h3 id="formTitle">Novo material</h3>
+      <form id="itemForm">
+        <label>Nome do material</label>
+        <input name="name" required placeholder="Ex.: Gel para ultrassom">
+        <label>Natureza (cor)</label>
+        <select name="cat" required></select>
+        <div class="grid2">
+          <div><label>Sala</label><select name="zone"></select></div>
+          <div><label>Móvel</label><select name="furn"></select></div>
+        </div>
+        <div class="grid2">
+          <div id="cabWrap"><label>Armário da bancada</label><select name="cab"></select></div>
+          <div><label>Gaveta/Prateleira</label><select name="comp"></select></div>
+        </div>
+        <label>Quantidade</label>
+        <input name="qty" placeholder="Ex.: 3 caixas">
+        <label>Observações</label>
+        <textarea name="notes" placeholder="Validade, responsável, patrimônio…"></textarea>
+        <div class="preview">Código: <b id="codePreview">—</b><div id="locPreview" class="muted"></div></div>
+        <div class="actions">
+          <button class="btn primary" type="submit" id="saveBtn">Salvar material</button>
+          <button class="btn" type="button" id="cancelEdit" style="display:none">Cancelar edição</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="pane" id="alm">
+      <h3 id="loanTitle">Novo empréstimo</h3>
+      <form id="loanForm">
+        <label>Equipamento</label>
+        <input name="equip" required data-label="Equipamento" list="itemNames" placeholder="Ex.: Multímetro" autocomplete="off">
+        <datalist id="itemNames"></datalist>
+        <div class="grid2">
+          <div><label>Quantidade</label><input name="qty" placeholder="Ex.: 1"></div>
+          <div><label>Data do empréstimo</label><input name="date" type="date" required data-label="Data do empréstimo"></div>
+        </div>
+        <label>Emprestado para</label>
+        <div class="grid2" style="grid-template-columns:128px 1fr">
+          <select name="btype"><option value="lab">Laboratório</option><option value="pessoa">Pessoa</option></select>
+          <input name="borrower" required data-label="Emprestado para" list="borrowerNames" placeholder="Nome do laboratório ou da pessoa" autocomplete="off">
+        </div>
+        <datalist id="borrowerNames"></datalist>
+        <label>Quem emprestou</label>
+        <input name="lender" required data-label="Quem emprestou" list="lenderNames" placeholder="Nome de quem entregou o equipamento" autocomplete="off">
+        <datalist id="lenderNames"></datalist>
+        <label>Devolução prevista (opcional)</label>
+        <input name="due" type="date">
+        <label>Observações</label>
+        <textarea name="notes" placeholder="Estado do equipamento, acessórios que foram junto, contato…"></textarea>
+        <div class="preview" id="loanLink" style="display:none"></div>
+        <div class="actions">
+          <button class="btn primary" type="submit" id="loanSave">Registrar empréstimo</button>
+          <button class="btn" type="button" id="loanCancel" style="display:none">Cancelar edição</button>
+        </div>
+      </form>
+      <h3>Empréstimos</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="loanFilter">
+        <button class="btn small on" data-lf="open">Em aberto</button>
+        <button class="btn small" data-lf="late">Atrasados</button>
+        <button class="btn small" data-lf="done">Devolvidos</button>
+        <button class="btn small" data-lf="all">Todos</button>
+      </div>
+      <input id="loanQ" type="search" placeholder="Filtrar por equipamento, laboratório ou pessoa…" style="margin-bottom:8px">
+      <div id="loanList"></div>
+    </div>
+
+    <div class="pane" id="config">
+      <h3>Novo armário / bancada</h3>
+      <form id="furnForm">
+        <div class="grid2">
+          <div><label>Sala</label><select name="zone"></select></div>
+          <div><label>Tipo</label><select name="type"><option value="A">Armário (A)</option><option value="B">Bancada (B)</option></select></div>
+        </div>
+        <label>Descrição</label>
+        <input name="desc" placeholder="Ex.: Armário de vidrarias">
+        <div id="ncWrap" style="display:none"><label>Nº de armários na bancada</label><input name="nc" type="number" min="0" max="20" value="2"></div>
+        <div class="grid2">
+          <div><label id="ngLabel">Nº de gavetas</label><input name="ng" type="number" min="0" max="20" value="2"></div>
+          <div><label id="npLabel">Nº de prateleiras</label><input name="np" type="number" min="0" max="20" value="2"></div>
+        </div>
+        <div class="preview">Será criado: <b id="furnPreview">—</b></div>
+        <div class="actions"><button class="btn primary" type="submit">Criar móvel</button></div>
+      </form>
+
+      <h3>Móveis cadastrados</h3>
+      <div id="furnList"></div>
+
+      <h3>Categorias (cores)</h3>
+      <div id="catList"></div>
+      <form id="catForm" class="grid2" style="grid-template-columns:1fr 56px auto;align-items:end;margin-top:8px">
+        <div><label>Nova categoria</label><input name="name" required placeholder="Ex.: Phantoms"></div>
+        <div><label>Cor</label><input name="color" type="color" value="#0ea5a4" style="padding:2px;height:36px"></div>
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+
+      <h3>Dados</h3>
+      <p class="muted" style="margin-top:0" id="dataHelp"></p>
+      <div class="actions">
+        <button class="btn needexport" id="exportBtn">Exportar JSON</button>
+        <button class="btn needadmin" id="importBtn">Importar JSON</button>
+        <button class="btn" id="reloadBtn">Recarregar dados</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </aside>
+
+  <section class="mapwrap">
+    <div id="banner"></div>
+    <div class="mapbar">
+      <strong>Planta</strong>
+      <button class="btn small" data-draw="B">＋ Bancada</button>
+      <button class="btn small" data-draw="A">＋ Armário</button>
+      <button class="btn small" data-draw="M">＋ Móvel fixo</button>
+      <button class="btn small" data-draw="D">＋ Porta</button>
+      <span style="display:inline-flex;gap:4px;align-items:center">
+        <select id="eqKind" class="btn small" style="width:auto;padding:4px 6px">
+          <option value="estufa">Estufa</option><option value="geladeira">Geladeira</option>
+          <option value="ultrassom">Ultrassom</option><option value="outro">Outro equipamento</option>
+        </select>
+        <button class="btn small" data-draw="E">＋ Equipamento</button>
+      </span>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="mapbody">
+      <div class="svgbox"><svg id="map" viewBox="0 0 545 675" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div id="info"></div>
+    </div>
+  </section>
+</main>
+
+<div id="modal" hidden><div class="mbox"><p id="mmsg"></p><div class="actions" style="justify-content:flex-end">
+  <button class="btn" id="mcancel">Cancelar</button><button class="btn primary" id="mok">OK</button></div></div></div>
+<script>
+/* ===================== SERVIDOR =====================
+   Cole aqui a URL do App da Web do Google Apps Script (termina em /exec).
+   Deixe vazio para usar o modo local (dados só neste navegador, sem login). */
+const API_URL = 'https://script.google.com/macros/s/AKfycbx3RVtIvlcGUVEFQCToGKicL4-6AaQvTkrutOWKeL7qct2I-Q92IgJOJ5ANHKUR582v/exec';
+const MODO_LOCAL = !API_URL;
+
+/* ===================== CONFIGURAÇÃO DA PLANTA =====================
+   Coordenadas em unidades do SVG (viewBox 0 0 435 675).
+   Para ajustar a planta, edite ZONES e FIXED. */
+const ZONES = [
+  { id: 7, x: 5,   y: 5,   w: 425, h: 140 },
+  { id: 6, x: 5,   y: 145, w: 425, h: 140 },
+  { id: 4, x: 5,   y: 285, w: 197, h: 140 },   // a sala 4 inclui o espaço da capela. Para esconder uma parede: open: ['r'] (t=cima, r=direita, b=baixo, l=esquerda)
+  { id: 5, x: 202, y: 285, w: 228, h: 140 },
+  { id: 3, x: 5,   y: 425, w: 425, h: 245 },
+];
+const OUTER = { x: 5, y: 5, w: 425, h: 665 };
+const VIEW = { x: 2, y: 2, w: 541, h: 671 };   // área total do desenho (inclui o lado de fora do laboratório)
+const ALM_POS = { x: 446, y: 22, w: 94, h: 56 };
+/* ---------- equipamentos (estufas, geladeira, ultrassom…) ---------- */
+const EQKINDS = {
+  estufa:    { name: 'Estufa',      color: '#d9480f', fill: '#fff4e6', w: 34, h: 28, fixed: true },
+  geladeira: { name: 'Geladeira',   color: '#1971c2', fill: '#e7f5ff', w: 26, h: 34, fixed: true },
+  ultrassom: { name: 'Ultrassom',   color: '#087f5b', fill: '#e6fcf5', w: 30, h: 30, fixed: false },
+  outro:     { name: 'Equipamento', color: '#495057', fill: '#f1f3f5', w: 30, h: 30, fixed: false },
+};
+const EQICON = {   // desenhos em uma grade de 24×24
+  estufa: '<rect x="3" y="4" width="18" height="15" rx="2"/><rect x="5.5" y="6.5" width="9.5" height="10" rx="1"/><circle cx="18" cy="9" r="1.2"/><circle cx="18" cy="13.5" r="1.2"/><path d="M8 12.5c1-1 2 1 3 0s2 1 3 0"/><line x1="5" y1="19" x2="5" y2="21.5"/><line x1="19" y1="19" x2="19" y2="21.5"/>',
+  geladeira: '<rect x="6" y="2" width="12" height="20" rx="2"/><line x1="6" y1="9" x2="18" y2="9"/><line x1="9" y1="4.5" x2="9" y2="7"/><line x1="9" y1="11.5" x2="9" y2="16"/><path d="M14.5 13.5l1.5 1.5m0-1.5l-1.5 1.5"/>',
+  ultrassom: '<rect x="3.5" y="2" width="13" height="9" rx="1.5"/><line x1="10" y1="11" x2="10" y2="18"/><line x1="5.5" y1="18" x2="14.5" y2="18"/><circle cx="6.5" cy="20.5" r="1.3"/><circle cx="13.5" cy="20.5" r="1.3"/><path d="M16.5 7c3.5.5 4 3 3.5 6"/><rect x="18.3" y="13" width="3.2" height="4.2" rx="1"/>',
+  outro: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="4"/>',
+};
+const getEquip = () => DB.equipment || (DB.equipment = []);
+const eqById = id => getEquip().find(q => q.id === id);
+const eqKind = q => EQKINDS[q.kind] || EQKINDS.outro;
+function roomAt(x, y) {
+  const z = ZONES.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+  if (z) return `Sala ${z.id}`;
+  return x >= OUTER.x && x <= OUTER.x + OUTER.w && y >= OUTER.y && y <= OUTER.y + OUTER.h ? 'Laboratório' : 'Fora do laboratório';
+}
+const eqRoom = q => roomAt(q.x + q.w / 2, q.y + q.h / 2);
+function newEquip(kind, cx, cy) {
+  const k = EQKINDS[kind] || EQKINDS.outro;
+  const n = getEquip().filter(q => q.kind === kind).length + 1;
+  const q = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind, name: `${k.name} ${n}`,
+    fixed: k.fixed, locked: false, notes: '', w: k.w, h: k.h,
+    x: Math.round(clamp(cx - k.w / 2, VIEW.x, VIEW.x + VIEW.w - k.w)), y: Math.round(clamp(cy - k.h / 2, VIEW.y, VIEW.y + VIEW.h - k.h)) };
+  getEquip().push(q);
+  return q;
+}
+/* Portas: o = 'h' (parede horizontal) ou 'v' (parede vertical); x,y = centro da porta na parede;
+   len = largura; side = para que lado ela abre (1 ou -1) */
+const DOORS = [
+  { id: 'd1', o: 'v', x: 430, y: 50,  len: 36, side: -1 },
+  { id: 'd2', o: 'v', x: 430, y: 259, len: 26, side: -1 },
+  { id: 'd3', o: 'h', x: 399, y: 425, len: 30, side: 1 },
+  { id: 'd4', o: 'v', x: 430, y: 451, len: 28, side: -1 },
+  { id: 'd5', o: 'h', x: 82,  y: 670, len: 34, side: -1 },
+];
+const getDoors = () => DB.doors || (DB.doors = DOORS.map(d => ({ ...d })));
+function zoneSides(z) {
+  const open = z.open || [], all = {
+    t: [z.x, z.y, z.x + z.w, z.y], r: [z.x + z.w, z.y, z.x + z.w, z.y + z.h],
+    b: [z.x, z.y + z.h, z.x + z.w, z.y + z.h], l: [z.x, z.y, z.x, z.y + z.h] };
+  return Object.keys(all).filter(k => !open.includes(k)).map(k => all[k]);
+}
+function wallSegments() {
+  const segs = [];
+  ZONES.forEach(z => zoneSides(z).forEach(([x1, y1, x2, y2]) =>
+    segs.push(y1 === y2 ? { o: 'h', c: y1, a: x1, b: x2 } : { o: 'v', c: x1, a: y1, b: y2 })));
+  [OUTER, ...FIXED].forEach(r => {
+    segs.push({ o: 'h', c: r.y, a: r.x, b: r.x + r.w }, { o: 'h', c: r.y + r.h, a: r.x, b: r.x + r.w },
+              { o: 'v', c: r.x, a: r.y, b: r.y + r.h }, { o: 'v', c: r.x + r.w, a: r.y, b: r.y + r.h });
+  });
+  return segs;
+}
+function snapToWall(p, len) {
+  let best = null, bd = Infinity;
+  wallSegments().forEach(sg => {
+    const along = sg.o === 'h' ? p.x : p.y, across = sg.o === 'h' ? p.y : p.x;
+    const t = clamp(along, sg.a, sg.b);
+    const d = Math.hypot(along - t, across - sg.c);
+    if (d < bd && sg.b - sg.a >= len) { bd = d; best = sg; }
+  });
+  if (!best) return null;
+  const along = best.o === 'h' ? p.x : p.y, across = best.o === 'h' ? p.y : p.x;
+  const t = Math.round(clamp(along, best.a + len / 2, best.b - len / 2));
+  return { o: best.o, x: best.o === 'h' ? t : best.c, y: best.o === 'h' ? best.c : t, side: across >= best.c ? 1 : -1 };
+}
+function doorSvg(d, on) {
+  const h = (d.hinge ? -1 : 1) * d.len / 2, L = d.len, sd = d.side;
+  let gap, leaf, arc, j1, j2;
+  if (d.o === 'h') {
+    gap = [d.x - h, d.y, d.x + h, d.y];
+    leaf = [d.x - h, d.y, d.x - h, d.y + sd * L];
+    arc = `M ${d.x + h} ${d.y} A ${L} ${L} 0 0 ${(sd > 0 ? 1 : 0) ^ (d.hinge ? 1 : 0)} ${d.x - h} ${d.y + sd * L}`;
+    j1 = [d.x - h, d.y - 4, d.x - h, d.y + 4]; j2 = [d.x + h, d.y - 4, d.x + h, d.y + 4];
+  } else {
+    gap = [d.x, d.y - h, d.x, d.y + h];
+    leaf = [d.x, d.y - h, d.x + sd * L, d.y - h];
+    arc = `M ${d.x} ${d.y + h} A ${L} ${L} 0 0 ${(sd > 0 ? 0 : 1) ^ (d.hinge ? 1 : 0)} ${d.x + sd * L} ${d.y - h}`;
+    j1 = [d.x - 4, d.y - h, d.x + 4, d.y - h]; j2 = [d.x - 4, d.y + h, d.x + 4, d.y + h];
+  }
+  const ln = (a, cls) => `<line class="${cls}" x1="${a[0]}" y1="${a[1]}" x2="${a[2]}" y2="${a[3]}"/>`;
+  return `<g class="door${on ? ' hl' : ''}" data-door="${d.id}"><title>Porta — arraste ao longo das paredes</title>
+    ${ln(gap, 'dgap')}${ln(j1, 'djamb')}${ln(j2, 'djamb')}${ln(leaf, 'dleaf')}<path class="darc" d="${arc}"/>${ln(gap, 'dhit')}</g>`;
+}
+const FIXED = [];
+/* Móveis fixos com nome (não guardam materiais). A capela começa como um deles. */
+const BLOCKS = [ { id: 'm1', name: 'Capela', x: 130, y: 285, w: 72, h: 140, hatch: true } ];
+const getBlocks = () => DB.blocks || (DB.blocks = BLOCKS.map(b => ({ ...b })));
+const blockById = id => getBlocks().find(b => b.id === id);
+
+const SEED = {
+  categories: [
+    { id: 'quim', name: 'Reagente químico',  color: '#e5484d' },
+    { id: 'vidr', name: 'Vidraria',          color: '#3e9bd6' },
+    { id: 'elet', name: 'Eletrônica',        color: '#f2a51a' },
+    { id: 'cons', name: 'Consumível',        color: '#30a46c' },
+    { id: 'epi',  name: 'EPI / Segurança',   color: '#8e4ec6' },
+    { id: 'ferr', name: 'Ferramenta',        color: '#6b7385' },
+    { id: 'phan', name: 'Phantom / simulador', color: '#d6409f' },
+  ],
+  furniture: [
+    { code: '7A1', zone: 7, type: 'A', num: 1, desc: 'Armário superior',   x: 115, y: 8,   w: 312, h: 34, comps: ['G1','G2','G3','P1','P2'] },
+    { code: '7B1', zone: 7, type: 'B', num: 1, desc: 'Bancada',            x: 140, y: 112, w: 205, h: 30, cabs: [{ num: 1, comps: ['G1','G2'] }, { num: 2, comps: ['P1','P2'] }] },
+    { code: '7A2', zone: 7, type: 'A', num: 2, desc: 'Armário lateral',    x: 392, y: 98,  w: 34,  h: 44, comps: ['P1','P2'] },
+    { code: '6A1', zone: 6, type: 'A', num: 1, desc: 'Armário',            x: 382, y: 150, w: 44,  h: 100, comps: ['P1','P2','P3'] },
+    { code: '5A1', zone: 5, type: 'A', num: 1, desc: 'Armário',            x: 392, y: 295, w: 34,  h: 115, comps: ['G1','G2','P1'] },
+    { code: '4A1', zone: 4, type: 'A', num: 1, desc: 'Armário',            x: 66,  y: 318, w: 30,  h: 100, comps: ['P1','P2','P3'] },
+    { code: '3B1', zone: 3, type: 'B', num: 1, desc: 'Bancada central',    x: 140, y: 438, w: 78,  h: 175, cabs: [{ num: 1, comps: ['G1','G2','G3'] }, { num: 2, comps: ['P1','P2'] }] },
+    { code: '3B2', zone: 3, type: 'B', num: 2, desc: 'Bancada inferior',   x: 135, y: 636, w: 200, h: 30,  cabs: [{ num: 1, comps: ['G1','G2'] }, { num: 2, comps: ['G1','G2'] }, { num: 3, comps: ['P1'] }] },
+    { code: '3A1', zone: 3, type: 'A', num: 1, desc: 'Armário',            x: 345, y: 570, w: 66,  h: 96,  comps: ['P1','P2','G1'] },
+  ],
+  items: [
+    { id: 's1', name: 'Gel para ultrassom',   loc: '3B1A1G1', cat: 'cons', qty: '10 frascos', notes: '' },
+    { id: 's2', name: 'Phantom de mama',      loc: '6A1P2', cat: 'phan', qty: '1',          notes: '' },
+    { id: 's3', name: 'Béquer 250 mL',        loc: '3A1P1', cat: 'vidr', qty: '6',          notes: '' },
+    { id: 's4', name: 'Multímetro',           loc: '7A1G2', cat: 'elet', qty: '2',          notes: '' },
+    { id: 's5', name: 'ESP32 DevKit',         loc: '7A1G1', cat: 'elet', qty: '4',          notes: '' },
+    { id: 's6', name: 'Luvas nitrílicas (M)', loc: '4A1P1', cat: 'epi',  qty: '3 caixas',   notes: '' },
+    { id: 's7', name: 'Álcool 70%',           loc: '4A1P2', cat: 'quim', qty: '2 L',        notes: '' },
+    { id: 's8', name: 'Jogo de chaves Philips', loc: '5A1G1', cat: 'ferr', qty: '1',        notes: '' },
+  ],
+};
+
+/* ===================== ESTADO ===================== */
+const KEY = 'labmap-v1';
+let DB = null;
+let sel = null;        // { zone, furn, comp }
+let placing = null;    // código do móvel sendo posicionado
+let editingId = null;
+const $ = s => document.querySelector(s);
+const svg = $('#map');
+const TYPE = { A: 'Armário', B: 'Bancada' };
+const CTYPE = { G: 'Gaveta', P: 'Prateleira' };
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Caixas de diálogo próprias (alert/confirm do navegador podem ser bloqueados em algumas visualizações) */
+function uiConfirm(msg, okLabel = 'Excluir', danger = true) {
+  return new Promise(resolve => {
+    const m = document.getElementById('modal'), ok = document.getElementById('mok'), cancel = document.getElementById('mcancel');
+    document.getElementById('mmsg').textContent = msg;
+    ok.textContent = okLabel || 'OK';
+    ok.classList.toggle('danger', !!(okLabel && danger));
+    cancel.style.display = okLabel ? '' : 'none';
+    m.hidden = false; ok.focus();
+    const done = v => { m.hidden = true; document.removeEventListener('keydown', key, true); ok.onclick = cancel.onclick = m.onclick = null; resolve(v); };
+    const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } else if (e.key === 'Enter') { e.preventDefault(); done(true); } };
+    document.addEventListener('keydown', key, true);
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+    m.onclick = e => { if (e.target === m) done(false); };
+  });
+}
+const uiAlert = msg => uiConfirm(msg, null);
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/* Códigos:
+   3A1G2    = Sala 3 · Armário 1 · Gaveta 2
+   3B1A2P1  = Sala 3 · Bancada 1 · Armário 2 · Prateleira 1   (armários dentro de bancadas) */
+function parseLoc(code) {
+  const m = String(code || '').trim().toUpperCase().match(/^(\d+)(?:([AB])(\d+)(?:A(\d+))?(?:([GP])(\d+))?)?$/);
+  if (!m) return null;
+  if (m[2] === 'A' && m[4]) return null;
+  const furn = m[2] ? `${m[1]}${m[2]}${m[3]}` : null;
+  const cab = m[4] ? `${furn}A${m[4]}` : null;
+  const unit = cab || (m[2] === 'A' ? furn : null);       // onde ficam as gavetas/prateleiras
+  return {
+    zone: +m[1], furn, type: m[2] || null, num: m[3] ? +m[3] : null,
+    cab, cabNum: m[4] ? +m[4] : null, unit,
+    comp: m[5] ? `${unit || furn}${m[5]}${m[6]}` : null,
+    ctype: m[5] || null, cnum: m[6] ? +m[6] : null,
+  };
+}
+function locLabel(code) {
+  const p = parseLoc(code);
+  if (!p) return code;
+  const parts = [`Sala ${p.zone}`];
+  if (p.furn) parts.push(`${TYPE[p.type]} ${p.num}`);
+  if (p.cab) parts.push(`Armário ${p.cabNum}`);
+  if (p.comp) parts.push(`${CTYPE[p.ctype]} ${p.cnum}`);
+  return parts.join(' · ');
+}
+/* "Unidade" = lugar que tem gavetas/prateleiras: o próprio armário (A) ou cada armário de uma bancada (B) */
+function unitsOf(f) {
+  if (f.type === 'B') return [...(f.cabs || [])].sort((a, b) => a.num - b.num).map(c => ({ code: `${f.code}A${c.num}`, holder: c, f, num: c.num }));
+  return [{ code: f.code, holder: f, f, num: null }];
+}
+function unitByCode(code) {
+  const p = parseLoc(code);
+  if (!p || !p.furn) return null;
+  const f = furnByCode(p.furn);
+  if (!f) return null;
+  return unitsOf(f).find(u => u.code === (p.cab || p.furn)) || null;
+}
+/* ---------- almoxarifado / empréstimos ---------- */
+const getLoans = () => DB.loans || (DB.loans = []);
+const todayISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const fmtDate = iso => iso ? iso.split('-').reverse().join('/') : '—';
+const loanOpen = l => !l.returned;
+const loanLate = l => loanOpen(l) && l.due && l.due < todayISO();
+const openLoanForItem = id => getLoans().find(l => loanOpen(l) && l.itemId === id);
+const BTYPE = { lab: 'Laboratório', pessoa: 'Pessoa' };
+const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+const cat = id => DB.categories.find(c => c.id === id) || { name: 'Sem categoria', color: '#b0b6c3' };
+const furnByCode = code => DB.furniture.find(f => f.code === code);
+const sortComps = comps => [...comps].sort((a, b) => a[0] === b[0] ? +a.slice(1) - +b.slice(1) : a[0] === 'G' ? -1 : 1);
+
+function itemsAt(s) {
+  if (!s) return [];
+  return DB.items.filter(it => {
+    const p = parseLoc(it.loc);
+    if (!p) return false;
+    if (s.comp) return p.comp === s.comp;
+    if (s.cab) return p.cab === s.cab;
+    if (s.furn) return p.furn === s.furn;
+    return p.zone === s.zone;
+  });
+}
+const catsAt = comp => [...new Set(DB.items.filter(i => parseLoc(i.loc)?.comp === comp).map(i => i.cat))];
+
+/* ===================== PERSISTÊNCIA ===================== */
+/* ===================== SESSÃO, PERMISSÕES E SINCRONIZAÇÃO ===================== */
+const SESSION_KEY = 'labmap-session';
+let USER = null, session = null, serverVersion = 0;
+let pushTimer = null, pushing = false, pendingPush = false, pollTimer = null;
+const canEdit = () => MODO_LOCAL || !!(USER && USER.editar);
+const canExport = () => MODO_LOCAL || !!(USER && USER.exportar);
+const isAdmin = () => !MODO_LOCAL && !!(USER && USER.admin);
+function applyPermissions() {
+  document.body.classList.toggle('readonly', !canEdit());
+  document.body.classList.toggle('noexport', !canExport());
+  document.body.classList.toggle('noadmin', !isAdmin());
+  $('#userEmail').textContent = MODO_LOCAL ? '' : (USER ? USER.email : '');
+  $('#logoutBtn').style.display = MODO_LOCAL ? 'none' : '';
+  $('#dataHelp').innerHTML = MODO_LOCAL
+    ? 'Modo local: os cadastros ficam salvos só neste navegador. Para usar com login e dados compartilhados, configure o <code>API_URL</code> (veja o LEIAME).'
+    : 'Os dados ficam guardados na planilha do laboratório e são salvos automaticamente. Todo mundo vê as mudanças.';
+}
+function setSync(state, msg) {
+  const el = $('#syncStatus');
+  const txt = { ok: '● Salvo', saving: 'Salvando…', pending: 'Alterações pendentes…', error: '⚠ Erro ao salvar', local: 'Modo local', readonly: 'Somente leitura' };
+  el.className = 'sync ' + state;
+  el.textContent = txt[state] || '';
+  el.title = msg || '';
+}
+async function api(action, payload = {}) {
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // evita a checagem CORS extra do navegador
+    body: JSON.stringify(Object.assign({ action, token: session && session.token }, payload)),
+  });
+  const j = await r.json();
+  if (j.error === 'auth') {
+    logout(j.message || 'Faça login novamente.');
+    const e = new Error(j.message || 'auth'); e.auth = true; throw e;
+  }
+  return j;
+}
+function save() {
+  if (MODO_LOCAL) { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+  else if (canEdit()) schedulePush();
+  renderAll();
+}
+function schedulePush() {
+  pendingPush = true; setSync('pending');
+  clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 700);
+}
+async function pushNow() {
+  if (pushing) { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 500); return; }
+  pushing = true; pendingPush = false; setSync('saving');
+  try {
+    const r = await api('saveData', { data: JSON.stringify(DB), baseVersion: serverVersion });
+    if (r.conflict) {
+      applyServerData(r);
+      toast('Outra pessoa salvou alterações ao mesmo tempo. A planta foi atualizada com a versão mais recente: confira e, se precisar, refaça a sua última alteração.');
+      setSync('ok');
+    } else if (r.ok) {
+      serverVersion = r.version;
+      setSync(pendingPush ? 'pending' : 'ok');
+    } else {
+      setSync('error', r.error); toast('Não foi possível salvar: ' + esc(r.error || 'erro desconhecido'));
+    }
+  } catch (err) {
+    if (!err.auth) { setSync('error', 'Sem conexão. Tentando de novo…'); pendingPush = true; clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 5000); }
+  } finally { pushing = false; }
+}
+window.addEventListener('beforeunload', e => { if (pendingPush || pushing) { e.preventDefault(); e.returnValue = ''; } });
+function applyServerData(r) {
+  DB = r.data && typeof r.data === 'object' ? r.data : structuredClone(SEED);
+  serverVersion = Number(r.version) || 0;
+  prepareDB();
+  if (sel && sel.furn && !furnByCode(sel.furn)) sel = null;
+  renderAll();
+}
+async function loadServer() {
+  setSync('saving'); $('#syncStatus').textContent = 'Carregando…';
+  const r = await api('getData');
+  if (!r.ok) { setSync('error', r.error); uiAlert('Não foi possível carregar os dados: ' + (r.error || '')); return; }
+  applyServerData(r);
+  setSync(canEdit() ? 'ok' : 'readonly');
+  clearInterval(pollTimer);
+  pollTimer = setInterval(pollServer, 30000);
+}
+async function pollServer() {      // traz as alterações feitas por outras pessoas
+  if (document.hidden || pushing || pendingPush || drag) return;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#info, form') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+  try {
+    const v = await api('version');
+    if (v.ok && v.version > serverVersion) {
+      const r = await api('getData');
+      if (r.ok && !pendingPush && !pushing) applyServerData(r);
+    }
+  } catch (err) { /* tenta na próxima */ }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !MODO_LOCAL && USER) pollServer(); });
+
+/* ---------- tela de login ---------- */
+let authEmail = '', authInitial = '';
+function showAuth(view, msg, info) {
+  $('#auth').hidden = false;
+  ['loginForm', 'setupForm', 'forgotForm'].forEach(id => { $('#' + id).hidden = id !== view; });
+  const m = $('#authMsg');
+  m.hidden = !msg; m.textContent = msg || ''; m.className = 'authmsg' + (info ? ' info' : '');
+  const first = $('#' + view).querySelector('input:not([type=hidden])');
+  if (first) setTimeout(() => (view === 'loginForm' && first.value ? $('#loginForm').password : first).focus(), 30);
+}
+function busy(form, on) { form.querySelectorAll('button').forEach(b => { b.disabled = on; }); form.style.opacity = on ? .6 : 1; }
+async function enter(r) {
+  session = { token: r.token };
+  USER = r.user;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: r.token, user: r.user })); } catch (e) {}
+  $('#auth').hidden = true;
+  applyPermissions();
+  await loadServer();
+}
+function logout(msg) {
+  session = null; USER = null; clearInterval(pollTimer);
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  showAuth('loginForm', msg || '', !!msg && /saiu/.test(msg));
+}
+const LG = $('#loginForm'), SG = $('#setupForm'), FG = $('#forgotForm');
+onSubmit(LG, async () => {
+  busy(LG, true);
+  try {
+    const email = LG.email.value.trim().toLowerCase(), password = LG.password.value;
+    const r = await api('login', { email, password });
+    if (r.needSetup) {
+      authEmail = email; authInitial = password;
+      $('#setupTitle').textContent = 'Primeiro acesso: defina a sua senha';
+      $('#setupInfo').textContent = r.codeSent ? `Enviamos um código de 6 números para ${email}. Confira também a caixa de spam.` : 'Escolha a senha que você vai usar daqui para frente.';
+      $('#codeWrap').hidden = !r.codeSent;
+      SG.reset(); showAuth('setupForm');
+    } else if (r.ok) { LG.password.value = ''; await enter(r); }
+    else showAuth('loginForm', r.error || 'Não foi possível entrar.');
+  } catch (err) { if (!err.auth) showAuth('loginForm', 'Sem conexão com o servidor. Tente de novo.'); }
+  finally { busy(LG, false); }
+});
+onSubmit(SG, async () => {
+  if (SG.pw1.value !== SG.pw2.value) { showAuth('setupForm', 'As duas senhas não são iguais.'); return; }
+  if (SG.pw1.value.length < 8) { showAuth('setupForm', 'A senha precisa ter pelo menos 8 caracteres.'); return; }
+  if (!$('#codeWrap').hidden && !/^\d{6}$/.test(SG.code.value.trim())) { showAuth('setupForm', 'Digite o código de 6 números que chegou no seu e-mail.'); return; }
+  busy(SG, true);
+  try {
+    const r = await api('setPassword', { email: authEmail, code: SG.code.value.trim(), initialPassword: authInitial, newPassword: SG.pw1.value });
+    if (r.ok) { SG.reset(); await enter(r); toast('Senha definida. Bem-vindo(a)!'); }
+    else showAuth('setupForm', r.error || 'Não foi possível salvar a senha.');
+  } catch (err) { if (!err.auth) showAuth('setupForm', 'Sem conexão com o servidor. Tente de novo.'); }
+  finally { busy(SG, false); }
+});
+onSubmit(FG, async () => {
+  busy(FG, true);
+  try {
+    const email = FG.email.value.trim().toLowerCase();
+    const r = await api('requestReset', { email });
+    if (r.ok && r.emailEnabled === false) { showAuth('forgotForm', 'A troca de senha por e-mail está desligada. Peça a um administrador para resetar a sua senha.'); return; }
+    authEmail = email; authInitial = '';
+    $('#setupTitle').textContent = 'Crie uma senha nova';
+    $('#setupInfo').textContent = `Se ${email} estiver cadastrado, um código de 6 números foi enviado para ele. Confira também a caixa de spam.`;
+    $('#codeWrap').hidden = false;
+    SG.reset(); showAuth('setupForm');
+  } catch (err) { showAuth('forgotForm', 'Sem conexão com o servidor. Tente de novo.'); }
+  finally { busy(FG, false); }
+});
+$('#goForgot').onclick = e => { e.preventDefault(); FG.email.value = LG.email.value; showAuth('forgotForm'); };
+document.querySelectorAll('[data-auth-back]').forEach(a => { a.onclick = e => { e.preventDefault(); showAuth('loginForm'); }; });
+$('#logoutBtn').onclick = async () => {
+  if (pendingPush || pushing) { if (!(await uiConfirm('Ainda há alterações sendo salvas. Sair mesmo assim?', 'Sair'))) return; }
+  logout('Você saiu da sua conta.');
+};
+
+/* ---------- administração de usuários ---------- */
+async function openUsers() {
+  $('#usersModal').hidden = false;
+  await renderUsers();
+}
+async function renderUsers() {
+  const box = $('#usersList');
+  try {
+    const r = await api('listUsers');
+    if (!r.ok) { box.innerHTML = `<p class="muted">${esc(r.error || 'Erro')}</p>`; return; }
+    const me = USER.email;
+    box.innerHTML = `<table class="utable"><thead><tr><th>E-mail</th><th>Situação</th><th class="c">Editar</th><th class="c">Exportar</th><th class="c">Admin</th><th></th></tr></thead><tbody>` +
+      r.users.sort((a, b) => (b.admin - a.admin) || a.email.localeCompare(b.email)).map(u => `<tr data-user="${esc(u.email)}">
+        <td><b>${esc(u.email)}</b>${u.email === me ? ' <span class="muted">(você)</span>' : ''}</td>
+        <td class="muted">${u.aguardandoPrimeiroAcesso ? 'Aguardando 1º acesso' : (u.ultimoAcesso ? 'Último acesso ' + esc(u.ultimoAcesso) : 'Ativo')}</td>
+        <td class="c"><input type="checkbox" data-uperm="editar" ${u.editar ? 'checked' : ''} ${u.admin ? 'disabled title="Administradores sempre podem editar"' : ''}></td>
+        <td class="c"><input type="checkbox" data-uperm="exportar" ${u.exportar ? 'checked' : ''} ${u.admin ? 'disabled title="Administradores sempre podem exportar"' : ''}></td>
+        <td class="c"><input type="checkbox" data-uperm="admin" ${u.admin ? 'checked' : ''} ${u.email === me ? 'disabled' : ''}></td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn small" data-uact="reset" title="Volta para a senha inicial; a pessoa define uma nova no próximo acesso">Resetar senha</button>
+          ${u.email === me ? '' : '<button class="btn small" data-uact="del">Remover</button>'}
+        </td></tr>`).join('') + '</tbody></table>';
+  } catch (err) { if (!err.auth) box.innerHTML = '<p class="muted">Sem conexão com o servidor.</p>'; }
+}
+$('#usersBtn').onclick = openUsers;
+$('#usersClose').onclick = () => { $('#usersModal').hidden = true; };
+$('#usersModal').addEventListener('click', e => { if (e.target.id === 'usersModal') $('#usersModal').hidden = true; });
+const UF = $('#userForm');
+onSubmit(UF, async () => {
+  const user = { email: UF.email.value.trim().toLowerCase(), editar: UF.editar.checked, exportar: UF.exportar.checked, admin: UF.admin.checked };
+  try {
+    const r = await api('saveUser', { user });
+    if (!r.ok) { uiAlert(r.error || 'Não foi possível adicionar.'); return; }
+    UF.reset(); UF.editar.checked = true;
+    toast(`${esc(user.email)} adicionado. No primeiro acesso, a pessoa usa a senha inicial e depois define a própria senha.`);
+    renderUsers();
+  } catch (err) { if (!err.auth) uiAlert('Sem conexão com o servidor.'); }
+});
+$('#usersList').addEventListener('change', async e => {
+  const cb = e.target.closest('[data-uperm]'); if (!cb) return;
+  const tr = cb.closest('tr'), get = k => tr.querySelector(`[data-uperm=${k}]`).checked;
+  try {
+    const r = await api('saveUser', { user: { email: tr.dataset.user, editar: get('editar'), exportar: get('exportar'), admin: get('admin') } });
+    if (!r.ok) uiAlert(r.error || 'Não foi possível alterar.');
+  } catch (err) { /* */ }
+  renderUsers();
+});
+$('#usersList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-uact]'); if (!b) return;
+  const email = b.closest('tr').dataset.user;
+  if (b.dataset.uact === 'del') {
+    if (!(await uiConfirm(`Remover o acesso de ${email}?`, 'Remover'))) return;
+    const r = await api('removeUser', { email }); if (!r.ok) uiAlert(r.error || 'Erro');
+  } else {
+    if (!(await uiConfirm(`Resetar a senha de ${email}? A pessoa vai entrar de novo com a senha inicial e definir uma nova.`, 'Resetar', false))) return;
+    const r = await api('resetUser', { email }); if (!r.ok) uiAlert(r.error || 'Erro'); else toast(`Senha de ${esc(email)} resetada.`);
+  }
+  renderUsers();
+});
+async function fetchShared() {
+  try {
+    const r = await fetch('data.json', { cache: 'no-store' });
+    if (r.ok) return await r.json();
+  } catch (e) {}
+  return null;
+}
+function normalize(d) {
+  // bancadas antigas (gavetas direto na bancada) viram bancada com Armário 1
+  (d.furniture || []).forEach(f => {
+    if (f.type === 'B' && !f.cabs) {
+      f.cabs = f.comps && f.comps.length ? [{ num: 1, comps: f.comps }] : [];
+      (d.items || []).forEach(it => {
+        const p = parseLoc(it.loc);
+        if (p && p.furn === f.code && !p.cab && p.comp) it.loc = f.code + 'A1' + it.loc.toUpperCase().slice(f.code.length);
+      });
+    }
+    if (f.type === 'B') delete f.comps;
+    if (f.type === 'A' && !f.comps) f.comps = [];
+  });
+  return d;
+}
+async function boot() {
+  if (MODO_LOCAL) {
+    try { const ls = localStorage.getItem(KEY); if (ls) DB = JSON.parse(ls); } catch (e) {}
+    if (!DB) DB = await fetchShared();
+    if (!DB) DB = structuredClone(SEED);
+    prepareDB();
+    applyPermissions(); setSync('local');
+    renderAll();
+    return;
+  }
+  DB = structuredClone(SEED); prepareDB(); applyPermissions(); renderAll();   // fundo enquanto não loga
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) {}
+  if (!saved || !saved.token) { showAuth('loginForm'); return; }
+  session = { token: saved.token }; USER = saved.user;
+  try {
+    const r = await api('me');
+    if (r.ok) { USER = r.user; localStorage.setItem(SESSION_KEY, JSON.stringify({ token: saved.token, user: r.user })); applyPermissions(); await loadServer(); }
+    else showAuth('loginForm', r.error);
+  } catch (err) { if (!err.auth) showAuth('loginForm', 'Sem conexão com o servidor. Tente de novo.'); }
+}
+function prepareDB() {
+  delete DB.corridor;
+  normalize(DB);
+  if (!DB.capela80) {     // ajuste único: capela 20% mais estreita em dados já salvos
+    const c = (DB.blocks || []).find(b => norm(b.name) === 'capela');
+    if (c) c.w = Math.round(c.w * 0.8);
+    DB.capela80 = true;
+  }
+  if (!DB.almAdded) {     // coloca o almoxarifado na planta uma única vez (pode ser movido ou excluído depois)
+    if (!getBlocks().some(b => b.alm)) getBlocks().push({ id: 'alm', name: 'Almoxarifado', alm: true, ...ALM_POS });
+    DB.almAdded = true;
+  }
+  if (!DB.eqAdded) {      // 3 estufas, 1 geladeira e 2 ultrassons esperando do lado de fora para serem arrastados
+    [['estufa', 466, 122], ['estufa', 516, 122], ['estufa', 466, 162], ['geladeira', 516, 164], ['ultrassom', 466, 210], ['ultrassom', 516, 210]]
+      .forEach(([k, x, y]) => newEquip(k, x, y));
+    DB.eqAdded = true;
+  }
+  if (!DB.almOutside) {   // leva o almoxarifado para fora do laboratório (uma vez)
+    const a = getBlocks().find(b => b.alm);
+    if (a) Object.assign(a, ALM_POS);
+    DB.almOutside = true;
+  }
+}
+
+/* ===================== MAPA ===================== */
+function matchedFurniture() {
+  const q = $('#q').value.trim();
+  if (!q) return new Set();
+  return new Set(searchItems(q).map(i => parseLoc(i.loc)?.furn).filter(Boolean));
+}
+
+function renderMap() {
+  const s = [];
+  s.push(`<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="8" height="8" fill="#eef0f4"/><line x1="0" y1="0" x2="0" y2="8" stroke="#c9ced8" stroke-width="2"/></pattern></defs>`);
+  s.push(`<rect class="outer" x="5" y="5" width="425" height="665"/>`);
+
+  FIXED.forEach(f => {
+    const cx = f.x + f.w / 2, cy = f.y + f.h / 2;
+    s.push(`<g class="fixed ${f.cls || ''}"><rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}"/>
+      <text class="flabel" x="${cx}" y="${cy}" ${f.vertical ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(f.label)}</text></g>`);
+  });
+
+  ZONES.forEach(z => {
+    const on = sel && sel.zone === z.id;
+    s.push(`<g class="zone${on ? ' hl' : ''}" data-zone="${z.id}">
+      <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}"/>
+      <text class="zlabel" x="${z.x + z.w / 2}" y="${z.y + z.h / 2}">${z.id}</text>
+      <text class="ztag" x="${z.x + 6}" y="${z.y + 14}">S${z.id}</text></g>`);
+  });
+
+  const nq = norm($('#q').value.trim());
+  getBlocks().forEach(b => {
+    const on = sel && sel.block === b.id, match = nq && norm(b.name).includes(nq);
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, vert = b.h > b.w * 2;
+    const fs = Math.max(7, Math.min(13, (vert ? b.h : b.w) / Math.max(4, b.name.length) * 1.6, (vert ? b.w : b.h) * 0.6));
+    const nOpen = b.alm ? getLoans().filter(loanOpen).length : 0, nLate = b.alm ? getLoans().filter(loanLate).length : 0;
+    const two = b.alm && b.h >= 26 && !vert && b.w < 120;
+    const lines = two ? [nOpen ? plural(nOpen, 'emprestado', 'emprestados') : 'nada emprestado', ...(nLate ? [plural(nLate, 'atrasado', 'atrasados')] : [])] : [];
+    s.push(`<g class="block${b.hatch ? ' hatch' : ''}${b.alm ? ' alm' : ''}${on ? ' hl' : ''}${match ? ' match' : ''}" data-block="${b.id}">
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="2"><title>${esc(b.name || 'Móvel fixo')}</title></rect>
+      <text class="blabel" x="${cx}" y="${two ? cy - lines.length * 5 : cy}" style="font-size:${two ? Math.min(fs, 10.5) : fs}px" ${vert ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(b.name)}</text>
+      ${lines.map((t, i) => `<text class="almcount${i === 1 ? ' late' : ''}" x="${cx}" y="${cy - lines.length * 5 + 12 + i * 10}">${t}</text>`).join('')}
+      ${b.alm && b.x >= OUTER.x + OUTER.w ? `<text class="almout" x="${cx}" y="${b.y - 5}">fora do laboratório</text>` : ''}
+      ${on ? `<rect class="rh" data-resize="MESA:${b.id}" x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" rx="2"><title>Arraste para redimensionar</title></rect>` : ''}</g>`);
+  });
+  // paredes das salas por cima dos móveis fixos (a sala selecionada por último, para o destaque ficar por cima)
+  [...ZONES].sort((a, b) => (sel && sel.zone === a.id) - (sel && sel.zone === b.id)).forEach(z => {
+    const on = sel && sel.zone === z.id;
+    zoneSides(z).forEach(([x1, y1, x2, y2]) => s.push(`<line class="zwall${on ? ' on' : ''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`));
+  });
+  getDoors().forEach(d => s.push(doorSvg(d, sel && sel.door === d.id)));
+  const matches = matchedFurniture();
+  DB.furniture.forEach(f => {
+    const on = sel && sel.furn === f.code;
+    const cls = ['furn', on ? 'hl' : '', matches.has(f.code) ? 'match' : ''].join(' ');
+    s.push(`<g class="${cls}" data-furn="${f.code}">`);
+    s.push(`<rect class="fbody" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="2"/>`);
+    const units = unitsOf(f), horiz = f.w >= f.h;
+    units.forEach((u, i) => {
+      let r = { x: f.x, y: f.y, w: f.w, h: f.h };
+      if (f.type === 'B') {
+        const n = units.length;
+        r = horiz ? { x: f.x + i * f.w / n, y: f.y, w: f.w / n, h: f.h } : { x: f.x, y: f.y + i * f.h / n, w: f.w, h: f.h / n };
+        const con = sel && sel.cab === u.code;
+        s.push(`<rect class="cab${con ? ' cabhl' : ''}" data-cab="${u.code}" x="${r.x + 1.5}" y="${r.y + 1.5}" width="${Math.max(1, r.w - 3)}" height="${Math.max(1, r.h - 3)}" rx="1.5"><title>${u.code} — ${locLabel(u.code)}</title></rect>`);
+        // rótulo do armário (A1, A2…) do lado de fora da bancada
+        const lx = horiz ? r.x + r.w / 2 : f.x + f.w + 3, ly = horiz ? (f.y > 22 && f.y + f.h + 9 < 670 ? f.y + f.h + 8 : f.y - 3) : r.y + r.h / 2;
+        s.push(`<text class="cablabel${con ? ' on' : ''}" x="${lx}" y="${ly}" text-anchor="${horiz ? 'middle' : 'start'}">A${u.num}</text>`);
+        r = { x: r.x + 3, y: r.y + 3, w: Math.max(1, r.w - 6), h: Math.max(1, r.h - 6) };
+      }
+      // gavetas/prateleiras empilhadas DENTRO do armário
+      const comps = sortComps(u.holder.comps || []), n = comps.length;
+      comps.forEach((c, k) => {
+        const ch = r.h / n, cy = r.y + k * ch, full = u.code + c;
+        const con = sel && sel.comp === full;
+        s.push(`<rect class="comp${con ? ' chl' : ''}" data-comp="${full}" x="${r.x}" y="${cy}" width="${r.w}" height="${ch}"><title>${full} — ${locLabel(full)}</title></rect>`);
+        const fs = Math.min(8, ch * 0.78);
+        const cats = catsAt(full).slice(0, 3), rr = Math.min(2.3, ch / 3.2);
+        const dotsW = cats.length && ch >= 5 && r.w >= 22 ? cats.length * 5.2 : 0;
+        if (fs >= 4.5 && r.w >= 12) s.push(`<text class="clabel" x="${r.x + (r.w - dotsW) / 2}" y="${cy + ch / 2}" style="font-size:${fs}px">${c}</text>`);
+        if (dotsW) cats.forEach((cid, j) => s.push(`<circle cx="${r.x + r.w - 3.2 - j * 5.2}" cy="${cy + ch / 2}" r="${rr}" fill="${cat(cid).color}" pointer-events="none"/>`));
+      });
+    });
+    if (on) s.push(`<rect class="rh" data-resize="${f.code}" x="${f.x + f.w - 5}" y="${f.y + f.h - 5}" width="10" height="10" rx="2"><title>Arraste para redimensionar</title></rect>`);
+    const labelsAbove = f.type === 'B' && f.w >= f.h && !(f.y > 22 && f.y + f.h + 9 < 670) && unitsOf(f).length;
+    const ty = labelsAbove ? f.y - 12 : (f.y > 22 ? f.y - 4 : f.y + f.h + 11);
+    s.push(`<text class="fcode" x="${f.x + 1}" y="${ty}">${f.code}</text></g>`);
+  });
+  const nq2 = norm($('#q').value.trim());
+  getEquip().forEach(q => {
+    const k = eqKind(q), on = sel && sel.equip === q.id, match = nq2 && (norm(q.name).includes(nq2) || norm(k.name).includes(nq2));
+    const m = Math.min(q.w, q.h) * 0.82, cx = q.x + q.w / 2, cy = q.y + q.h / 2;
+    s.push(`<g class="equip${q.fixed ? ' efixed' : ' mobile'}${on ? ' hl' : ''}${match ? ' match' : ''}${q.fixed && q.locked ? ' locked' : ''}" data-equip="${q.id}" style="--ec:${k.color}">
+      <rect class="ebody" x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="3" style="fill:${k.fill}"><title>${esc(q.name)} — ${q.fixed ? 'fixo' : 'móvel'} · ${eqRoom(q)}</title></rect>
+      <g class="eicon" transform="translate(${cx - m / 2} ${cy - m / 2}) scale(${m / 24})">${EQICON[q.kind] || EQICON.outro}</g>
+      <text class="elabel" x="${cx}" y="${q.y + q.h + 8}">${esc(q.name)}</text>
+      ${on && !(q.fixed && q.locked) ? `<rect class="rh" data-resize="EQ:${q.id}" x="${q.x + q.w - 5}" y="${q.y + q.h - 5}" width="10" height="10" rx="2"><title>Arraste para redimensionar</title></rect>` : ''}</g>`);
+  });
+  if (getEquip().some(q => q.x > OUTER.x + OUTER.w && q.y > 90 && q.y < 260)) s.push(`<text class="almout" x="493" y="104">arraste para o lugar certo</text>`);
+  if (draft) s.push(`<rect class="draft" x="${draft.x}" y="${draft.y}" width="${draft.w}" height="${draft.h}"/>`);
+  svg.innerHTML = s.join('');
+}
+
+function svgPoint(e) {
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+/* ---------- desenhar móvel novo ---------- */
+let drawMode = null, draft = null;
+function startDraw(type) {
+  drawMode = type;
+  document.body.classList.add('drawing');
+  document.querySelectorAll('[data-draw]').forEach(b => b.classList.toggle('on', b.dataset.draw === type));
+  const b = $('#banner');
+  b.innerHTML = (type === 'E' ? `Clique na planta onde fica ${(EQKINDS[$('#eqKind').value] || EQKINDS.outro).name.toLowerCase() === 'equipamento' ? 'o equipamento' : 'a/o ' + EQKINDS[$('#eqKind').value].name.toLowerCase()}.` : type === 'D' ? `Clique em uma parede para colocar a porta (ela se encaixa na parede mais próxima, abrindo para o lado em que você clicou).`
+    : `Clique e arraste na planta para desenhar ${type === 'B' ? 'a nova bancada' : type === 'M' ? 'o novo móvel fixo' : 'o novo armário'} (ou só clique para usar o tamanho padrão).`) + ` <button class="btn small" id="cancelDraw">Cancelar</button> <span class="muted">Esc também cancela.</span>`;
+  b.classList.add('on');
+  $('#cancelDraw').onclick = ev => { ev.stopPropagation(); stopDraw(); };
+}
+function stopDraw() {
+  drawMode = null; draft = null;
+  document.body.classList.remove('drawing');
+  document.querySelectorAll('[data-draw]').forEach(b => b.classList.remove('on'));
+  $('#banner').classList.remove('on');
+  renderMap();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawMode) stopDraw(); });
+function nextNum(zone, type) {
+  return Math.max(0, ...DB.furniture.filter(f => f.zone === zone && f.type === type).map(f => f.num)) + 1;
+}
+function createFurniture(type, zone, rect) {
+  const num = nextNum(zone, type);
+  const f = { code: `${zone}${type}${num}`, zone, type, num, desc: '', ...rect,
+    ...(type === 'B' ? { cabs: [{ num: 1, comps: ['G1', 'G2'] }] } : { comps: ['P1', 'P2'] }) };
+  DB.furniture.push(f);
+  return f;
+}
+
+/* ---------- arrastar e redimensionar ---------- */
+let drag = null, suppressClick = false;
+const clamp = (v, a, b) => Math.min(Math.max(v, a), Math.max(a, b));
+svg.addEventListener('pointerdown', e => {
+  if (placing || e.button !== 0) return;
+  if (!canEdit()) {   // somente leitura: clique seleciona, nada se move
+    drag = { mode: 'none', silent: true, moved: false, target: e.target, cx: e.clientX, cy: e.clientY, sx: 0, sy: 0 };
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    return;
+  }
+  if (drawMode === 'D') {
+    const sn = snapToWall(svgPoint(e), 30);
+    if (!sn) return;
+    const d = { id: 'd' + Date.now().toString(36), len: 30, ...sn };
+    getDoors().push(d);
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    stopDraw(); save(); select('PORTA:' + d.id);
+    e.preventDefault();
+    return;
+  }
+  if (drawMode === 'E') {
+    const p = svgPoint(e), q = newEquip($('#eqKind').value, p.x, p.y);
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    stopDraw(); save(); select('EQ:' + q.id);
+    const ni = $('#info [data-eq-name]'); if (ni) { ni.focus(); ni.select(); }
+    e.preventDefault();
+    return;
+  }
+  if (drawMode) {
+    const p = svgPoint(e);
+    const inside = r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+    const z = drawMode === 'M' ? (inside(OUTER) ? OUTER : null) : ZONES.find(inside);
+    if (!z) return;
+    drag = { mode: 'draw', z, sx: p.x, sy: p.y, moved: false };
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    return;
+  }
+  const dg = e.target.closest('[data-door]');
+  if (dg) {
+    const d = getDoors().find(x => x.id === dg.dataset.door);
+    if (!d) return;
+    drag = { mode: 'door', d, code: 'PORTA:' + d.id, moved: false, sx: svgPoint(e).x, sy: svgPoint(e).y, target: e.target, cx: e.clientX, cy: e.clientY };
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    return;
+  }
+  const h = e.target.closest('[data-resize]');
+  const eg = !h && e.target.closest('[data-equip]');
+  const g = !h && !eg && e.target.closest('[data-furn]');
+  const bg = !h && !g && !eg && e.target.closest('[data-block]');
+  if (!h && !g && !bg && !eg) return;
+  const code = h ? h.dataset.resize : eg ? 'EQ:' + eg.dataset.equip : g ? g.dataset.furn : 'MESA:' + bg.dataset.block;
+  const isBlock = code.startsWith('MESA:'), isEq = code.startsWith('EQ:');
+  const f = isEq ? eqById(code.slice(3)) : isBlock ? blockById(code.slice(5)) : furnByCode(code);
+  if (!f) return;
+  const p = svgPoint(e);
+  const lockedEq = isEq && f.fixed && f.locked;
+  drag = { f, code, isBlock, isEq, mode: lockedEq ? 'none' : h ? 'resize' : 'move', sx: p.x, sy: p.y, ox: f.x, oy: f.y, ow: f.w, oh: f.h, moved: false, target: e.target, cx: e.clientX, cy: e.clientY };
+  svg.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = svgPoint(e), dx = p.x - drag.sx, dy = p.y - drag.sy;
+  if (!drag.moved && drag.mode !== 'draw' && Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 6) return;
+  if (drag.mode === 'none') {      // equipamento fixo travado: não move
+    if (!drag.warned && !drag.silent) { drag.warned = true; toast(`“${esc(drag.f.name)}” é fixo e está travado. Para mover, clique nele e use “Destravar” no painel.`); }
+    return;
+  }
+  if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+  if (drag.mode === 'door') {
+    if (!drag.moved) { drag.moved = true; document.body.classList.add('dragging'); sel = { door: drag.d.id }; }
+    const sn = snapToWall(p, drag.d.len);
+    if (sn) { const side = sn.o === drag.d.o ? drag.d.side : sn.side; Object.assign(drag.d, sn, { side }); }
+    renderMap();
+    return;
+  }
+  if (drag.mode === 'draw') {
+    drag.moved = true;
+    const z = drag.z;
+    const x1 = clamp(Math.min(drag.sx, p.x), z.x, z.x + z.w), x2 = clamp(Math.max(drag.sx, p.x), z.x, z.x + z.w);
+    const y1 = clamp(Math.min(drag.sy, p.y), z.y, z.y + z.h), y2 = clamp(Math.max(drag.sy, p.y), z.y, z.y + z.h);
+    draft = { x: Math.round(x1), y: Math.round(y1), w: Math.round(x2 - x1), h: Math.round(y2 - y1) };
+    renderMap();
+    return;
+  }
+  if (!drag.moved) { drag.moved = true; document.body.classList.add('dragging'); sel = drag.isEq ? { equip: drag.f.id } : drag.isBlock ? { block: drag.f.id } : { zone: drag.f.zone, furn: drag.f.code, cab: null, comp: null }; }
+  const f = drag.f, z = drag.isEq ? VIEW : drag.isBlock ? (drag.f.alm ? VIEW : OUTER) : (ZONES.find(z => z.id === f.zone) || OUTER);
+  if (drag.mode === 'move') {
+    f.x = Math.round(clamp(drag.ox + dx, z.x, z.x + z.w - f.w));
+    f.y = Math.round(clamp(drag.oy + dy, z.y, z.y + z.h - f.h));
+  } else {
+    f.w = Math.round(clamp(drag.ow + dx, 10, z.x + z.w - f.x));
+    f.h = Math.round(clamp(drag.oh + dy, 10, z.y + z.h - f.y));
+  }
+  renderMap();
+});
+function endDrag(e) {
+  if (!drag) return;
+  try { svg.releasePointerCapture(e.pointerId); } catch (_) {}
+  document.body.classList.remove('dragging');
+  if (drag.mode === 'draw') {
+    const { z, sx, sy, moved } = drag, type = drawMode;
+    drag = null;
+    let rect = moved && draft && draft.w >= 8 && draft.h >= 8 ? draft : null;
+    if (!rect) {   // só clicou: tamanho padrão centrado no clique
+      const w = type === 'B' ? 90 : type === 'M' ? 60 : 34, h = type === 'B' ? 26 : type === 'M' ? 34 : 44;
+      rect = { x: Math.round(clamp(sx - w / 2, z.x, z.x + z.w - w)), y: Math.round(clamp(sy - h / 2, z.y, z.y + z.h - h)), w, h };
+    }
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    if (type === 'M') {
+      const b = { id: 'm' + Date.now().toString(36), name: 'Móvel fixo ' + (getBlocks().length + 1), ...rect };
+      getBlocks().push(b);
+      stopDraw(); save(); select('MESA:' + b.id);
+      const ni = $('#info [data-block-name]'); if (ni) { ni.focus(); ni.select(); }
+      return;
+    }
+    const f = createFurniture(type, z.id, rect);
+    stopDraw();
+    save();
+    select(f.code);
+    const d = $('#info [data-fedit="desc"]'); if (d) d.focus();
+    return;
+  }
+  const moved = drag.moved, code = drag.code, target = drag.target;
+  drag = null;
+  if (!moved) {            // foi um clique (sem arrastar): seleciona aqui mesmo
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    clickSelect(target);
+    return;
+  }
+  if (moved) {
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    save();
+    select(code);
+    if (code.startsWith('EQ:')) { const q = eqById(code.slice(3)); if (q) toast(`${esc(q.name)} agora está em: <b>${eqRoom(q)}</b>.`); }
+  }
+}
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+
+/* Clique em etapas: móvel inteiro → (armário da bancada) → gaveta/prateleira */
+function clickSelect(target) {
+  if (!target || !target.closest) return select(null);
+  const eqc = target.closest('[data-equip]'); if (eqc) return select('EQ:' + eqc.dataset.equip);
+  const c = target.closest('[data-comp]'), f = target.closest('[data-furn]');
+  if (f) {
+    const code = f.dataset.furn;
+    const cb = target.closest('[data-cab]');
+    if (sel && sel.furn === code) {
+      const compCode = c && c.dataset.comp, cabCode = (cb && cb.dataset.cab) || (compCode && parseLoc(compCode).cab);
+      if (cabCode && sel.cab !== cabCode) return select(cabCode);          // bancada → armário
+      if (compCode) return select(sel.comp === compCode ? (cabCode || code) : compCode);   // armário → gaveta
+      if (cabCode) return select(code);
+    }
+    return select(code);
+  }
+  const dc = target.closest('[data-door]'); if (dc) return select('PORTA:' + dc.dataset.door);
+  const bc = target.closest('[data-block]'); if (bc) return select('MESA:' + bc.dataset.block);
+  const z = target.closest('[data-zone]'); if (z) return select(z.dataset.zone);
+  select(null);
+}
+svg.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  if (placing) {
+    const f = furnByCode(placing);
+    const p = svgPoint(e);
+    f.x = Math.round(p.x - f.w / 2); f.y = Math.round(p.y - f.h / 2);
+    const z = ZONES.find(z => p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h);
+    if (z && z.id !== f.zone) uiAlert(`Atenção: o ponto clicado fica na Sala ${z.id}, mas o móvel ${f.code} pertence à Sala ${f.zone}.`);
+    placing = null;
+    document.body.classList.remove('placing');
+    $('#banner').classList.remove('on');
+    select(f.code);
+    save();
+    return;
+  }
+  clickSelect(e.target);
+});
+
+function startPlacing(code) {
+  placing = code;
+  document.body.classList.add('placing');
+  const b = $('#banner');
+  b.innerHTML = `Clique na planta para posicionar <code>${code}</code>. <button class="btn small" id="cancelPlace">Cancelar</button>`;
+  b.classList.add('on');
+  $('#cancelPlace').onclick = ev => { ev.stopPropagation(); placing = null; document.body.classList.remove('placing'); b.classList.remove('on'); };
+}
+
+/* ===================== SELEÇÃO / INFO ===================== */
+function select(code) {
+  if (code == null) sel = null;
+  else if (String(code).startsWith('PORTA:')) sel = { door: code.slice(6) };
+  else if (String(code).startsWith('MESA:')) sel = { block: code.slice(5) };
+  else if (String(code).startsWith('EQ:')) sel = { equip: code.slice(3) };
+  else {
+    const p = parseLoc(code);
+    sel = p ? { zone: p.zone, furn: p.furn, cab: p.cab, comp: p.comp } : null;
+  }
+  renderMap(); renderInfo(); renderResults();
+}
+
+/* ---------- renumeração (atualiza os códigos dos materiais) ---------- */
+function toast(msg) {
+  const b = $('#banner');
+  b.innerHTML = msg; b.classList.add('on');
+  clearTimeout(toast.t); toast.t = setTimeout(() => b.classList.remove('on'), 5000);
+}
+function applyFurnRemap(remap) {          // remap: Map(códigoAntigo -> códigoNovo)
+  DB.items.forEach(it => {
+    const p = parseLoc(it.loc);
+    if (p && p.furn && remap.has(p.furn)) it.loc = remap.get(p.furn) + it.loc.toUpperCase().slice(p.furn.length);
+  });
+  DB.furniture.forEach(f => {
+    if (remap.has(f.code)) { const n = parseLoc(remap.get(f.code)); f.code = n.furn; f.num = n.num; }
+  });
+}
+function renumberFurniture(f, newNum) {
+  const other = DB.furniture.find(x => x !== f && x.zone === f.zone && x.type === f.type && x.num === newNum);
+  const newCode = `${f.zone}${f.type}${newNum}`, oldCode = f.code;
+  const remap = new Map([[oldCode, newCode]]);
+  if (other) remap.set(other.code, oldCode);
+  applyFurnRemap(remap);
+  return other ? oldCode : null;
+}
+function renumberComp(u, oldC, newC) {
+  const h = u.holder, swap = h.comps.includes(newC);
+  h.comps = h.comps.map(c => c === oldC ? newC : (swap && c === newC ? oldC : c));
+  DB.items.forEach(it => {
+    const p = parseLoc(it.loc);
+    if (!p || !p.comp || p.unit !== u.code) return;
+    const c = p.comp.slice(u.code.length);
+    if (c === oldC) it.loc = u.code + newC;
+    else if (swap && c === newC) it.loc = u.code + oldC;
+  });
+  return swap;
+}
+function resequenceComps(u) {
+  const h = u.holder, map = new Map();
+  ['G', 'P'].forEach(t => h.comps.filter(c => c[0] === t).sort((a, b) => +a.slice(1) - +b.slice(1)).forEach((c, i) => map.set(c, t + (i + 1))));
+  DB.items.forEach(it => {
+    const p = parseLoc(it.loc);
+    if (p && p.comp && p.unit === u.code) { const c = p.comp.slice(u.code.length); if (map.has(c)) it.loc = u.code + map.get(c); }
+  });
+  h.comps = h.comps.map(c => map.get(c));
+}
+function setCompCount(u, letter, n) {
+  const h = u.holder;
+  const keep = h.comps.filter(c => c[0] !== letter);
+  const cur = h.comps.filter(c => c[0] === letter).sort((a, b) => +a.slice(1) - +b.slice(1));
+  let next;
+  if (n >= cur.length) { next = [...cur]; let k = 1; while (next.length < n) { if (!next.includes(letter + k)) next.push(letter + k); k++; } }
+  else next = cur.slice(0, n);
+  const removed = cur.filter(c => !next.includes(c));
+  const busy = removed.filter(c => itemsAt({ comp: u.code + c }).length);
+  if (busy.length) { uiAlert(`Não dá para remover ${busy.map(c => u.code + c).join(', ')}: há materiais cadastrados. Mova-os antes.`); return false; }
+  h.comps = [...next, ...keep];
+  return true;
+}
+function remapCab(f, map) {           // map: Map(numAntigo -> numNovo)
+  DB.items.forEach(it => {
+    const p = parseLoc(it.loc);
+    if (p && p.furn === f.code && p.cab && map.has(p.cabNum)) it.loc = `${f.code}A${map.get(p.cabNum)}` + it.loc.toUpperCase().slice(p.cab.length);
+  });
+  f.cabs.forEach(c => { if (map.has(c.num)) c.num = map.get(c.num); });
+}
+function renumberCab(f, cab, newNum) {
+  const other = f.cabs.find(c => c !== cab && c.num === newNum);
+  const map = new Map([[cab.num, newNum]]);
+  if (other) map.set(newNum, cab.num);
+  remapCab(f, map);
+  return !!other;
+}
+function resequenceCabs(f) {
+  const map = new Map();
+  [...f.cabs].sort((a, b) => a.num - b.num).forEach((c, i) => { if (c.num !== i + 1) map.set(c.num, i + 1); });
+  remapCab(f, map);
+  return map.size;
+}
+function resequenceFurniture(zone, type) {
+  const list = DB.furniture.filter(f => f.zone === zone && f.type === type).sort((a, b) => a.num - b.num);
+  const remap = new Map();
+  list.forEach((f, i) => { const nc = `${zone}${type}${i + 1}`; if (nc !== f.code) remap.set(f.code, nc); });
+  applyFurnRemap(remap);
+  return remap.size;
+}
+
+function unitEditor(u) {
+  const comps = sortComps(u.holder.comps);
+  const g = comps.filter(c => c[0] === 'G').length, p = comps.filter(c => c[0] === 'P').length;
+  return `<div class="grid2"><div><label>Gavetas</label><input type="number" min="0" max="20" data-unit="${u.code}" data-fedit="ng" value="${g}"></div>
+    <div><label>Prateleiras</label><input type="number" min="0" max="20" data-unit="${u.code}" data-fedit="np" value="${p}"></div></div>
+    ${comps.length ? `<label>Numeração das gavetas e prateleiras</label>
+    ${comps.map(c => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+      <code style="min-width:72px">${u.code + c}</code><span style="min-width:72px">${CTYPE[c[0]]}</span>
+      <input type="number" min="1" max="99" data-unit="${u.code}" data-cnum="${c}" value="${c.slice(1)}" style="width:62px">
+      <span class="muted" style="font-size:12px">${plural(itemsAt({ comp: u.code + c }).length, 'item', 'itens')}</span></div>`).join('')}
+    <button class="btn small" data-renum="comps" data-unit="${u.code}" style="margin-top:4px">Renumerar gavetas/prateleiras em sequência</button>` : ''}`;
+}
+function renderInfo() {
+  renderInfoInner();
+  if (!canEdit()) {
+    $('#info').querySelectorAll('input, select, textarea').forEach(el => { el.disabled = true; });
+    $('#info').querySelectorAll('h3').forEach(h => { if (/^Editar/i.test(h.textContent)) h.textContent = 'Detalhes'; });
+  }
+}
+function renderInfoInner() {
+  const box = $('#info');
+  if (!sel) {
+    box.innerHTML = `<h3>Como usar</h3>
+      <p class="muted">Busque um material no campo de cima ou clique em uma sala, móvel ou gaveta da planta.</p>
+      <p class="muted">Os móveis com contorno <b style="color:var(--match)">azul</b> têm itens da busca atual. O destaque <b style="color:var(--hl)">laranja</b> mostra o local selecionado.</p>
+      <p class="muted"><b>Clique</b> em um móvel para selecioná-lo inteiro. Com ele selecionado, clique em uma gaveta ou prateleira (ou, nas bancadas, em um armário) para ver só o que tem nela.</p>
+      <p class="muted">Bancadas podem ter vários armários (<code>3B1A2</code>), e cada armário tem suas gavetas e prateleiras (<code>3B1A2G1</code>).</p>
+      <p class="muted"><b>Para mudar a planta:</b> clique e arraste um armário ou bancada. Com ele selecionado, arraste o quadradinho do canto inferior direito para mudar o tamanho. Cada móvel só se move dentro da própria sala.</p>
+      <p class="muted"><b>Equipamentos</b> (estufas, geladeira, ultrassom…) aparecem com ícone. Borda contínua = fixo; borda tracejada = móvel.</p>
+      <p class="muted">As bolinhas coloridas dentro das gavetas e prateleiras indicam a natureza dos materiais guardados ali.</p>`;
+    return;
+  }
+  if (sel.equip) {
+    const q = eqById(sel.equip);
+    if (!q) { sel = null; return renderInfo(); }
+    const k = eqKind(q);
+    box.innerHTML = `<h3>Equipamento</h3>
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg viewBox="0 0 24 24" width="36" height="36" style="fill:none;stroke:${k.color};stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;background:${k.fill};border-radius:8px;padding:4px;flex:none">${EQICON[q.kind] || EQICON.outro}</svg>
+        <div><div style="font-size:18px;font-weight:700">${esc(q.name)}</div>
+        <div class="muted">${k.name} · ${q.fixed ? 'fixo' : 'móvel'} · está em <b style="color:var(--ink)">${eqRoom(q)}</b></div></div>
+      </div>
+      <label>Nome</label><input data-eq-name="${q.id}" value="${esc(q.name)}" placeholder="Ex.: Estufa de secagem">
+      <div class="grid2">
+        <div><label>Tipo</label><select data-eq-kind="${q.id}">${Object.entries(EQKINDS).map(([key, v]) => `<option value="${key}"${key === q.kind ? ' selected' : ''}>${v.name === 'Equipamento' ? 'Outro' : v.name}</option>`).join('')}</select></div>
+        <div><label>Como fica</label><select data-eq-fixed="${q.id}"><option value="1"${q.fixed ? ' selected' : ''}>Fixo</option><option value="0"${q.fixed ? '' : ' selected'}>Móvel</option></select></div>
+      </div>
+      ${q.fixed ? `<div class="actions"><button class="btn small" data-eq-act="lock" data-id="${q.id}">${q.locked ? '🔓 Destravar para mover' : '🔒 Travar posição'}</button></div>
+        <p class="muted" style="font-size:12px;margin:6px 0 0">${q.locked ? 'Posição travada: ninguém move sem querer.' : 'Depois de colocar no lugar certo, trave a posição.'}</p>`
+        : `<p class="muted" style="font-size:12px">Equipamento móvel: quando alguém levar para outra sala, é só arrastar na planta. O site mostra em que sala ele está.</p>`}
+      <label>Observações</label><textarea data-eq-notes="${q.id}" placeholder="Patrimônio, modelo, responsável, temperatura…">${esc(q.notes)}</textarea>
+      <div class="actions"><button class="btn small" data-eq-act="rot" data-id="${q.id}">↻ Girar</button>
+      <button class="btn small" data-eq-act="del" data-id="${q.id}">Excluir</button></div>`;
+    return;
+  }
+  if (sel.block) {
+    const b = blockById(sel.block);
+    if (!b) { sel = null; return renderInfo(); }
+    if (b.alm) {
+      const open = getLoans().filter(loanOpen).sort((x, y) => (x.date || '').localeCompare(y.date || ''));
+      box.innerHTML = `<h3>Almoxarifado</h3>
+        <div style="font-size:20px;font-weight:700">${plural(open.length, 'equipamento emprestado', 'equipamentos emprestados')}</div>
+        <p class="muted" style="margin-top:4px">${getLoans().filter(loanLate).length ? `<b style="color:#c02626">${plural(getLoans().filter(loanLate).length, 'empréstimo atrasado', 'empréstimos atrasados')}</b>` : 'Nenhum empréstimo atrasado.'}</p>
+        <div class="actions"><button class="btn small primary" data-goalm="new">＋ Registrar empréstimo</button><button class="btn small" data-goalm="list">Ver todos</button></div>
+        <h3>Em aberto</h3>
+        ${open.map(loanCard).join('') || '<p class="muted">Nenhum equipamento emprestado no momento.</p>'}
+        <p class="muted" style="font-size:12px">Arraste o almoxarifado na planta para mudar de lugar e use o quadradinho do canto para mudar o tamanho.</p>`;
+      return;
+    }
+    box.innerHTML = `<h3>Móvel fixo</h3>
+      <label>Nome</label><input data-block-name="${b.id}" value="${esc(b.name)}" placeholder="Ex.: Mesa do scanner">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--ink)"><input type="checkbox" data-block-hatch="${b.id}" ${b.hatch ? 'checked' : ''} style="width:auto"> Mostrar hachurado (como a capela)</label>
+      <div class="actions"><button class="btn small" data-block-act="rot" data-id="${b.id}">↻ Girar</button>
+      <button class="btn small" data-block-act="del" data-id="${b.id}">Excluir</button></div>
+      <p class="muted" style="font-size:12px">Arraste na planta para mudar de lugar e use o quadradinho do canto para mudar o tamanho. O nome também aparece na busca.</p>`;
+    return;
+  }
+  if (sel.door) {
+    const d = getDoors().find(x => x.id === sel.door);
+    if (!d) { sel = null; return renderInfo(); }
+    box.innerHTML = `<h3>Selecionado</h3>
+      <div style="font-size:20px;font-weight:700">Porta</div>
+      <p class="muted">Arraste a porta na planta: ela desliza pelas paredes e se encaixa na mais próxima.</p>
+      <label>Largura</label><input type="number" min="10" max="120" data-door-len="${d.id}" value="${d.len}">
+      <div class="actions"><button class="btn small" data-door-act="flip" data-id="${d.id}">⇄ Inverter abertura</button>
+      <button class="btn small" data-door-act="hinge" data-id="${d.id}">↔ Trocar lado da dobradiça</button>
+      <button class="btn small" data-door-act="del" data-id="${d.id}">Excluir</button></div>`;
+    return;
+  }
+  const code = sel.comp || sel.cab || sel.furn || String(sel.zone);
+  const f = sel.furn && furnByCode(sel.furn);
+  if (sel.furn && !f) { sel = null; return renderInfo(); }
+  const items = itemsAt(sel);
+  let html = `<h3>Local selecionado</h3>
+    <div style="font-size:20px;font-weight:700;font-family:ui-monospace,Consolas,monospace">${code}</div>
+    <div class="muted" style="margin-bottom:6px">${locLabel(code)}${f && f.desc ? ` — ${esc(f.desc)}` : ''}</div>`;
+  const chip = (c, label) => `<button class="btn small" data-sel="${c}">${label}</button>`;
+  if (f && !sel.comp && !sel.cab) {
+    // navegação: armários da bancada ou gavetas do armário
+    const nav = f.type === 'B' ? unitsOf(f).map(u => chip(u.code, 'A' + u.num)) : sortComps(f.comps).map(c => chip(f.code + c, c));
+    if (nav.length) html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">${nav.join('')}</div>`;
+    html += `<h3>Editar ${TYPE[f.type].toLowerCase()}</h3>
+      <div class="grid2" style="grid-template-columns:110px 1fr;align-items:end">
+        <div><label>Número</label><input type="number" min="1" max="99" data-fnum="${f.code}" value="${f.num}"></div>
+        <div><button class="btn small" data-renum="furn" data-code="${f.code}" style="margin-bottom:4px" title="Fecha os buracos na numeração (ex.: 1, 2, 4 → 1, 2, 3)">Renumerar ${TYPE[f.type].toLowerCase()}s da Sala ${f.zone} em sequência</button></div>
+      </div>
+      <label>Descrição</label><input data-fedit="desc" value="${esc(f.desc)}" placeholder="${f.type === 'B' ? 'Ex.: Bancada de eletrônica' : 'Ex.: Armário de vidrarias'}">`;
+    if (f.type === 'B') {
+      html += `<label>Armários desta bancada</label>
+        ${unitsOf(f).map(u => {
+          const g = u.holder.comps.filter(c => c[0] === 'G').length, pr = u.holder.comps.filter(c => c[0] === 'P').length;
+          return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+            <code style="min-width:62px;cursor:pointer" data-sel="${u.code}">${u.code}</code><span>Armário</span>
+            <input type="number" min="1" max="99" data-cabnum="${u.num}" value="${u.num}" style="width:62px">
+            <span class="muted" style="font-size:12px;flex:1">${g}G · ${pr}P · ${plural(itemsAt({ cab: u.code }).length, 'item', 'itens')}</span>
+            <button class="icon" data-sel="${u.code}" title="Editar gavetas e prateleiras deste armário">✎</button>
+            <button class="icon" data-cabdel="${u.num}" title="Excluir armário">✕</button></div>`;
+        }).join('') || '<p class="muted" style="margin:4px 0">Nenhum armário ainda.</p>'}
+        <div class="actions" style="margin-top:6px"><button class="btn small" data-cabadd="${f.code}">＋ Armário</button>
+        ${f.cabs.length > 1 ? `<button class="btn small" data-renum="cabs" data-code="${f.code}">Renumerar armários em sequência</button>` : ''}</div>`;
+    } else {
+      html += unitEditor(unitsOf(f)[0]);
+    }
+    html += `<div class="actions"><button class="btn small" data-fact="rot" data-code="${f.code}">↻ Girar</button>
+      <button class="btn small" data-fact="del" data-code="${f.code}">Excluir</button></div>
+      <p class="muted" style="font-size:12px">Se o número escolhido já existir, os dois trocam de número. Os códigos dos materiais são atualizados automaticamente.</p>
+      <p class="muted" style="font-size:12px">Arraste o móvel na planta para mudar de lugar e use o quadradinho do canto para mudar o tamanho.</p>`;
+  } else if (f && sel.cab && !sel.comp) {
+    const u = unitByCode(sel.cab);
+    if (u) {
+      const nav = sortComps(u.holder.comps).map(c => chip(u.code + c, c));
+      if (nav.length) html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">${nav.join('')}</div>`;
+      html += `<h3>Editar armário ${u.num} da bancada ${f.code}</h3>${unitEditor(u)}
+        <div class="actions"><button class="btn small" data-sel="${f.code}">← Voltar para a bancada</button>
+        <button class="btn small" data-cabdel="${u.num}">Excluir armário</button></div>`;
+    }
+  } else if (f && sel.comp) {
+    const p = parseLoc(sel.comp);
+    html += `<div class="actions" style="margin-top:4px"><button class="btn small" data-sel="${p.cab || f.code}">← ${p.cab ? 'Armário ' + p.cabNum : TYPE[f.type] + ' ' + f.num}</button></div>`;
+  }
+  html += `<h3>${items.length} ${items.length === 1 ? 'item' : 'itens'}</h3>`;
+  html += items.length ? items.map(itemRow).join('') : `<p class="muted">Nenhum material cadastrado aqui.</p>`;
+  if (sel.comp || sel.cab || sel.furn) html += `<div class="actions"><button class="btn small" data-addhere="${code}">+ Cadastrar material aqui</button></div>`;
+  box.innerHTML = html;
+}
+
+/* ===================== BUSCA ===================== */
+function searchItems(q) {
+  const nq = norm(q);
+  return DB.items.filter(it =>
+    norm(it.name).includes(nq) || norm(it.notes).includes(nq) ||
+    norm(it.loc).includes(nq) || norm(cat(it.cat).name).includes(nq));
+}
+
+function itemRow(it) {
+  const c = cat(it.cat);
+  const on = sel && sel.comp && parseLoc(it.loc)?.comp === sel.comp;
+  return `<div class="row${on ? ' on' : ''}" data-sel="${esc(it.loc)}">
+    <span class="dot" style="background:${c.color}" title="${esc(c.name)}"></span>
+    <div class="name"><div>${esc(it.name)}${it.qty ? ` <span class="muted">· ${esc(it.qty)}</span>` : ''}</div><div>${locLabel(it.loc)}</div>
+      ${(l => l ? `<div><span class="badge ${loanLate(l) ? 'late' : 'open'}">Emprestado para ${esc(l.borrower)} desde ${fmtDate(l.date)}${loanLate(l) ? ' · atrasado' : ''}</span></div>` : '')(openLoanForItem(it.id))}</div>
+    <span class="code">${esc(it.loc)}</span>
+    <button class="icon" data-edit="${it.id}" title="Editar">✎</button>
+    <button class="icon" data-del="${it.id}" title="Excluir">✕</button>
+  </div>`;
+}
+
+function renderResults() {
+  const q = $('#q').value.trim();
+  const list = q ? searchItems(q) : [...DB.items];
+  list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const blocks = q ? getBlocks().filter(b => norm(b.name).includes(norm(q))) : [];
+  const eqs = q ? getEquip().filter(e => norm(e.name).includes(norm(q)) || norm(eqKind(e).name).includes(norm(q)) || norm(e.notes).includes(norm(q))) : [];
+  const loans = q ? getLoans().filter(l => loanOpen(l) && [l.equip, l.borrower, l.lender, l.notes].some(v => norm(v).includes(norm(q)))) : [];
+  $('#results').innerHTML =
+    (blocks.length ? `<h3>Móveis fixos</h3>` + blocks.map(b => `<div class="row" data-sel="MESA:${b.id}"><span class="dot" style="background:#c9bfa8;border-radius:3px"></span><div class="name"><div>${esc(b.name)}</div><div>Móvel fixo</div></div></div>`).join('') : '') +
+    (eqs.length ? `<h3>Equipamentos</h3>` + eqs.map(e => `<div class="row" data-sel="EQ:${e.id}"><span class="dot" style="background:${eqKind(e).color};border-radius:3px"></span><div class="name"><div>${esc(e.name)}</div><div>${eqKind(e).name} ${e.fixed ? 'fixo' : 'móvel'} · ${eqRoom(e)}</div></div></div>`).join('') : '') +
+    (loans.length ? `<h3>Emprestados (almoxarifado)</h3>` + loans.map(loanCard).join('') : '') +
+    `<h3>${q ? `${list.length} material(is) para “${esc(q)}”` : `Todos os materiais (${list.length})`}</h3>` +
+    (list.length ? list.map(itemRow).join('') : `<p class="muted">Nada encontrado. Confira a grafia ou cadastre o material na aba Cadastrar.</p>`);
+}
+
+let lastQ = '';
+$('#q').addEventListener('input', () => {
+  const q = $('#q').value.trim();
+  showTab('busca');
+  const p = parseLoc(q);
+  if (p && (p.furn ? furnByCode(p.furn) : ZONES.some(z => z.id === p.zone))) { select(q); return; }
+  const res = q ? searchItems(q) : [];
+  if (res.length === 1 && q !== lastQ) select(res[0].loc);
+  else { renderMap(); renderResults(); }
+  lastQ = q;
+});
+
+/* ===================== ÁRVORE DE ZONAS ===================== */
+function renderTree() {
+  const zones = [...ZONES].sort((a, b) => a.id - b.id);
+  $('#tree').innerHTML = zones.map(z => {
+    const furns = DB.furniture.filter(f => f.zone === z.id).sort((a, b) => a.code.localeCompare(b.code));
+    const n = itemsAt({ zone: z.id }).length;
+    return `<details open><summary><span data-sel="${z.id}">Sala ${z.id}</span><span class="count">${furns.length} móveis · ${n} itens</span></summary>
+      <div class="tf">${furns.map(f => `
+        <div class="tfh" data-sel="${f.code}"><code>${f.code}</code> ${TYPE[f.type]} ${f.num}${f.desc ? ` <span class="muted">— ${esc(f.desc)}</span>` : ''}</div>
+        ${unitsOf(f).map(u => (f.type === 'B' ? `<div class="tc" data-sel="${u.code}" style="padding-left:24px;font-weight:500"><code>${u.code}</code> Armário ${u.num} <span class="muted">· ${itemsAt({ cab: u.code }).length}</span></div>` : '') +
+          sortComps(u.holder.comps).map(c => {
+            const full = u.code + c, cnt = itemsAt({ comp: full }).length;
+            return `<div class="tc" data-sel="${full}" style="padding-left:${f.type === 'B' ? 44 : 24}px"><code>${full}</code> ${CTYPE[c[0]]} ${c.slice(1)} <span class="muted">· ${cnt}</span>
+              <span class="dots">${catsAt(full).map(id => `<span class="dot" style="background:${cat(id).color};width:8px;height:8px"></span>`).join('')}</span></div>`;
+          }).join('')).join('')}`).join('') || '<p class="muted">Nenhum móvel cadastrado.</p>'}
+      </div></details>`;
+  }).join('');
+}
+
+/* Envio de formulários sem depender do "submit" do navegador
+   (algumas visualizações bloqueiam o envio de formulários) */
+function onSubmit(form, handler) {
+  form.addEventListener('submit', e => e.preventDefault());
+  const run = () => {
+    for (const el of form.elements) {
+      if (el.required && !String(el.value).trim()) {
+        el.focus();
+        const lab = el.dataset.label || (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL' ? el.previousElementSibling.textContent : (el.closest('div') && el.closest('div').querySelector('label') || {}).textContent);
+        toast(`Preencha o campo “${lab || 'obrigatório'}”.`);
+        return;
+      }
+    }
+    handler({ preventDefault() {}, target: form });
+  };
+  form.querySelectorAll('[type=submit]').forEach(b => { b.type = 'button'; b.addEventListener('click', run); });
+  form.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); run(); }
+  });
+}
+
+/* ===================== CADASTRO DE MATERIAL ===================== */
+const F = $('#itemForm');
+function fillZoneSelect(selEl, value) {
+  selEl.innerHTML = [...ZONES].sort((a, b) => a.id - b.id).map(z => `<option value="${z.id}">Sala ${z.id}</option>`).join('');
+  if (value != null) selEl.value = value;
+}
+function fillFurnSelect(value) {
+  const z = +F.zone.value;
+  const furns = DB.furniture.filter(f => f.zone === z).sort((a, b) => a.code.localeCompare(b.code));
+  F.furn.innerHTML = furns.map(f => `<option value="${f.code}">${f.code} · ${TYPE[f.type]} ${f.num}</option>`).join('') || '<option value="">(nenhum)</option>';
+  if (value) F.furn.value = value;
+  fillCabSelect();
+}
+function fillCabSelect(value) {
+  const f = furnByCode(F.furn.value);
+  const isB = f && f.type === 'B';
+  $('#cabWrap').style.visibility = isB ? 'visible' : 'hidden';
+  F.cab.innerHTML = isB ? `<option value="">(bancada inteira)</option>` + unitsOf(f).map(u => `<option value="${u.num}">A${u.num} · Armário ${u.num}</option>`).join('') : '<option value=""></option>';
+  if (isB) F.cab.value = value != null ? String(value) : (f.cabs.length ? String(unitsOf(f)[0].num) : '');
+  fillCompSelect();
+}
+function currentUnitCode() {
+  const f = furnByCode(F.furn.value);
+  if (!f) return '';
+  return f.type === 'B' ? (F.cab.value ? `${f.code}A${F.cab.value}` : '') : f.code;
+}
+function fillCompSelect(value) {
+  const u = unitByCode(currentUnitCode());
+  F.comp.innerHTML = `<option value="">(armário inteiro)</option>` + (u ? sortComps(u.holder.comps).map(c => `<option value="${c}">${c} · ${CTYPE[c[0]]} ${c.slice(1)}</option>`).join('') : '');
+  if (!u && furnByCode(F.furn.value)?.type === 'B') F.comp.innerHTML = `<option value="">—</option>`;
+  if (value != null) F.comp.value = value;
+  updatePreview();
+}
+function formLoc() {
+  if (!F.furn.value) return '';
+  const uc = currentUnitCode();
+  return uc ? uc + F.comp.value : F.furn.value;
+}
+function updatePreview() {
+  const code = formLoc();
+  $('#codePreview').textContent = code || '—';
+  $('#locPreview').textContent = code ? locLabel(code) : 'Cadastre um móvel nesta sala na aba Configurar.';
+}
+F.zone.onchange = () => fillFurnSelect();
+F.furn.onchange = () => fillCabSelect();
+F.cab.onchange = () => fillCompSelect();
+F.comp.onchange = updatePreview;
+
+function fillCatSelect() {
+  const v = F.cat.value;
+  F.cat.innerHTML = DB.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  if (v) F.cat.value = v;
+}
+
+function resetItemForm() {
+  editingId = null;
+  F.reset();
+  $('#formTitle').textContent = 'Novo material';
+  $('#saveBtn').textContent = 'Salvar material';
+  $('#cancelEdit').style.display = 'none';
+  fillCatSelect();
+  fillZoneSelect(F.zone);
+  fillFurnSelect();
+}
+
+function prefillLocation(code) {
+  const p = parseLoc(code);
+  if (!p) return;
+  F.zone.value = p.zone;
+  fillFurnSelect(p.furn);
+  if (p.type === 'B') fillCabSelect(p.cabNum || '');
+  fillCompSelect(p.comp ? p.comp.slice((p.unit || p.furn).length) : '');
+}
+
+function editItem(id) {
+  const it = DB.items.find(i => i.id === id);
+  if (!it) return;
+  showTab('cadastro');
+  editingId = id;
+  F.name.value = it.name; F.qty.value = it.qty || ''; F.notes.value = it.notes || '';
+  fillCatSelect(); F.cat.value = it.cat;
+  prefillLocation(it.loc);
+  $('#formTitle').textContent = 'Editar material';
+  $('#saveBtn').textContent = 'Salvar alterações';
+  $('#cancelEdit').style.display = '';
+  F.name.focus();
+}
+
+onSubmit(F, e => {
+  e.preventDefault();
+  if (!F.furn.value) { uiAlert('Escolha um móvel (cadastre um na aba Configurar, se necessário).'); return; }
+  const data = {
+    name: F.name.value.trim(), cat: F.cat.value,
+    loc: formLoc(), qty: F.qty.value.trim(), notes: F.notes.value.trim(),
+  };
+  if (editingId) Object.assign(DB.items.find(i => i.id === editingId), data);
+  else DB.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...data });
+  const loc = data.loc, wasEdit = !!editingId;
+  resetItemForm();
+  prefillLocation(loc);   // facilita cadastrar vários itens no mesmo lugar
+  F.cat.value = data.cat;
+  save();
+  select(loc);
+  toast(`${wasEdit ? 'Alterações salvas' : 'Material salvo'}: “${esc(data.name)}” em <code>${loc}</code> (${locLabel(loc)}).`);
+  F.name.focus();
+});
+$('#cancelEdit').onclick = resetItemForm;
+
+/* ===================== CONFIGURAÇÃO: MÓVEIS ===================== */
+const FF = $('#furnForm');
+function nextFurnCode() {
+  const z = +FF.zone.value, t = FF.type.value;
+  const num = nextNum(z, t);
+  return { z, t, num, code: `${z}${t}${num}` };
+}
+function updateFurnPreview() {
+  const n = nextFurnCode(), isB = n.t === 'B';
+  $('#ncWrap').style.display = isB ? '' : 'none';
+  $('#ngLabel').textContent = isB ? 'Gavetas em cada armário' : 'Nº de gavetas';
+  $('#npLabel').textContent = isB ? 'Prateleiras em cada armário' : 'Nº de prateleiras';
+  $('#furnPreview').textContent = `${n.code} (${TYPE[n.t]} ${n.num} da Sala ${n.z})`;
+}
+FF.zone.onchange = FF.type.onchange = updateFurnPreview;
+onSubmit(FF, e => {
+  e.preventDefault();
+  const n = nextFurnCode();
+  const ng = Math.max(0, +FF.ng.value || 0), np = Math.max(0, +FF.np.value || 0);
+  const comps = [...Array(ng)].map((_, i) => 'G' + (i + 1)).concat([...Array(np)].map((_, i) => 'P' + (i + 1)));
+  const z = ZONES.find(z => z.id === n.z);
+  const nc = Math.max(0, +FF.nc.value || 0);
+  const w = n.t === 'B' ? Math.max(40, nc * 32) : 40;
+  DB.furniture.push({ code: n.code, zone: n.z, type: n.t, num: n.num, desc: FF.desc.value.trim(),
+    x: Math.round(z.x + z.w / 2 - w / 2), y: Math.round(z.y + z.h / 2 - 15), w, h: 30,
+    ...(n.t === 'B' ? { cabs: [...Array(nc)].map((_, i) => ({ num: i + 1, comps: [...comps] })) } : { comps }) });
+  FF.desc.value = '';
+  save();
+  select(n.code);
+  const b = $('#banner');
+  b.innerHTML = `<code>${n.code}</code> foi criado no meio da Sala ${n.z}. Arraste-o na planta até o lugar certo.`;
+  b.classList.add('on');
+  setTimeout(() => b.classList.remove('on'), 6000);
+});
+
+function renderFurnList() {
+  const list = [...DB.furniture].sort((a, b) => a.zone - b.zone || a.code.localeCompare(b.code));
+  $('#furnList').innerHTML = list.map(f => `
+    <div class="row" data-sel="${f.code}" style="flex-wrap:wrap">
+      <code>${f.code}</code>
+      <div class="name"><div>${TYPE[f.type]} ${f.num}${f.desc ? ` — ${esc(f.desc)}` : ''}</div><div>${f.type === 'B'
+        ? (unitsOf(f).map(u => `A${u.num} (${sortComps(u.holder.comps).join(', ') || 'vazio'})`).join(' · ') || 'sem armários')
+        : (sortComps(f.comps).join(', ') || 'sem compartimentos')}</div></div>
+      ${f.type === 'B' ? `<button class="icon" data-cabadd="${f.code}" title="Adicionar armário na bancada">+A</button>` : `
+      <button class="icon" data-fact="addG" data-code="${f.code}" title="Adicionar gaveta">+G</button>
+      <button class="icon" data-fact="addP" data-code="${f.code}" title="Adicionar prateleira">+P</button>
+      <button class="icon" data-fact="rmComp" data-code="${f.code}" title="Remover último compartimento vazio">−</button>`}
+      <button class="icon" data-fact="rot" data-code="${f.code}" title="Girar">↻</button>
+      <button class="icon" data-fact="del" data-code="${f.code}" title="Excluir móvel">✕</button>
+    </div>`).join('');
+}
+
+async function furnAction(act, code) {
+  const f = furnByCode(code);
+  if (!f) return;
+  const count = t => Math.max(0, ...(f.comps || []).filter(c => c[0] === t).map(c => +c.slice(1)));
+  switch (act) {
+    case 'addG': f.comps.push('G' + (count('G') + 1)); break;
+    case 'addP': f.comps.push('P' + (count('P') + 1)); break;
+    case 'rmComp': {
+      const sorted = sortComps(f.comps);
+      const last = sorted[sorted.length - 1];
+      if (!last) return;
+      if (itemsAt({ comp: code + last }).length) { uiAlert(`${code + last} tem materiais cadastrados. Mova-os antes de remover.`); return; }
+      f.comps = f.comps.filter(c => c !== last); break;
+    }
+    case 'move': startPlacing(code); return;
+    case 'rot': [f.w, f.h] = [f.h, f.w]; break;
+    case 'grow': f.w = Math.round(f.w * 1.15); f.h = Math.round(f.h * 1.15); break;
+    case 'shrink': f.w = Math.max(10, Math.round(f.w / 1.15)); f.h = Math.max(10, Math.round(f.h / 1.15)); break;
+    case 'del': {
+      const n = itemsAt({ furn: code }).length;
+      const ok = await uiConfirm(n
+        ? `${code} tem ${n} ${n === 1 ? 'material cadastrado' : 'materiais cadastrados'}. Excluir o móvel junto com ${n === 1 ? 'esse material' : 'esses materiais'}?`
+        : `Excluir ${code} (${TYPE[f.type]} ${f.num}${f.desc ? ' — ' + f.desc : ''})?`);
+      if (!ok) return;
+      if (n) DB.items = DB.items.filter(i => parseLoc(i.loc)?.furn !== code);
+      DB.furniture = DB.furniture.filter(x => x !== f);
+      if (sel && sel.furn === code) sel = null;
+      break;
+    }
+  }
+  save();
+}
+
+/* ===================== CONFIGURAÇÃO: CATEGORIAS ===================== */
+function renderCatList() {
+  $('#catList').innerHTML = DB.categories.map(c => {
+    const n = DB.items.filter(i => i.cat === c.id).length;
+    return `<div class="row" style="cursor:default">
+      <input type="color" value="${c.color}" data-catcolor="${c.id}" style="width:36px;height:28px;padding:1px">
+      <input value="${esc(c.name)}" data-catname="${c.id}" style="flex:1">
+      <span class="muted" style="font-size:12px;white-space:nowrap">${n} itens</span>
+      <button class="icon" data-catdel="${c.id}" title="Excluir">✕</button></div>`;
+  }).join('');
+}
+onSubmit($('#catForm'), e => {
+  e.preventDefault();
+  const fd = e.target;
+  DB.categories.push({ id: 'c' + Date.now().toString(36), name: fd.name.value.trim(), color: fd.color.value });
+  fd.name.value = '';
+  save();
+});
+$('#catList').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.catcolor) DB.categories.find(c => c.id === t.dataset.catcolor).color = t.value;
+  else if (t.dataset.catname) DB.categories.find(c => c.id === t.dataset.catname).name = t.value.trim() || 'Sem nome';
+  else return;
+  save();
+});
+
+function renderLegend() {
+  $('#legend').innerHTML = DB.categories.map(c => `<span><i class="dot" style="background:${c.color}"></i>${esc(c.name)}</span>`).join('');
+}
+
+/* ===================== DADOS ===================== */
+function exportJSON() {
+  if (!canExport()) return;
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'data.json' });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+$('#exportBtn').onclick = exportJSON;
+$('#exportTop').onclick = exportJSON;
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d.items || !d.furniture || !d.categories) throw new Error('formato');
+    if (!(await uiConfirm(MODO_LOCAL ? 'Substituir os dados deste navegador pelo arquivo importado?' : 'Substituir TODOS os dados do laboratório pelo arquivo importado? Todos os usuários vão passar a ver estes dados.', 'Substituir'))) return;
+    DB = normalize(d); prepareDB(); sel = null; save();
+  } catch (err) { uiAlert('Arquivo inválido.'); }
+  e.target.value = '';
+};
+$('#reloadBtn').onclick = async () => {
+  if (!MODO_LOCAL) { await loadServer(); toast('Dados recarregados do servidor.'); return; }
+  const d = await fetchShared();
+  if (!d) { uiAlert('Não encontrei data.json no site.'); return; }
+  if (!(await uiConfirm('Substituir os dados deste navegador pelo data.json publicado?', 'Substituir'))) return;
+  DB = normalize(d); sel = null; save();
+};
+
+/* ===================== ABAS E EVENTOS GERAIS ===================== */
+function showTab(name) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === name));
+}
+document.querySelector('.tabs').onclick = e => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); };
+
+document.addEventListener('click', async e => {
+  const t = e.target;
+  if (t.closest('svg') || t.closest('#modal')) return;
+  const ed = t.closest('[data-edit]'); if (ed) { e.stopPropagation(); return editItem(ed.dataset.edit); }
+  const del = t.closest('[data-del]');
+  if (del) {
+    const it = DB.items.find(i => i.id === del.dataset.del);
+    if (it && await uiConfirm(`Excluir “${it.name}”?`)) { DB.items = DB.items.filter(i => i !== it); save(); }
+    return;
+  }
+  const la = t.closest('[data-loan-act]');
+  if (la) { e.preventDefault(); return loanAction(la.dataset.loanAct, la.dataset.id); }
+  const ga = t.closest('[data-goalm]');
+  if (ga) {
+    showTab('alm');
+    if (ga.dataset.goalm === 'new') { resetLoanForm(); LF.equip.focus(); }
+    else { loanFilter = 'all'; renderLoans(); $('#loanList').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    return;
+  }
+  const ca = t.closest('[data-cabadd]');
+  if (ca) {
+    const f = furnByCode(ca.dataset.cabadd);
+    if (!f) return;
+    const num = Math.max(0, ...f.cabs.map(c => c.num)) + 1;
+    f.cabs.push({ num, comps: ['G1', 'G2'] });
+    save(); select(`${f.code}A${num}`);
+    toast(`Armário <code>${f.code}A${num}</code> adicionado com 2 gavetas. Ajuste as gavetas e prateleiras no painel.`);
+    return;
+  }
+  const cd2 = t.closest('[data-cabdel]');
+  if (cd2) {
+    const f = sel && sel.furn && furnByCode(sel.furn);
+    if (!f) return;
+    const cab = f.cabs.find(c => c.num === +cd2.dataset.cabdel);
+    if (!cab) return;
+    const code = `${f.code}A${cab.num}`, n = itemsAt({ cab: code }).length;
+    const ok = await uiConfirm(n ? `${code} tem ${plural(n, 'material cadastrado', 'materiais cadastrados')}. Excluir o armário junto com ${n === 1 ? 'esse material' : 'esses materiais'}?` : `Excluir o armário ${code}?`);
+    if (!ok) return;
+    if (n) DB.items = DB.items.filter(i => parseLoc(i.loc)?.cab !== code);
+    f.cabs = f.cabs.filter(c => c !== cab);
+    save(); select(f.code);
+    return;
+  }
+  const rn = t.closest('[data-renum]');
+  if (rn) {
+    if (rn.dataset.renum === 'comps') {
+      const u = unitByCode(rn.dataset.unit);
+      if (!u) return;
+      resequenceComps(u); save(); toast(`Gavetas e prateleiras de <code>${u.code}</code> renumeradas em sequência.`);
+      return;
+    }
+    const f = furnByCode(rn.dataset.code);
+    if (!f) return;
+    if (rn.dataset.renum === 'cabs') {
+      const n = resequenceCabs(f); save(); select(f.code);
+      toast(n ? `Armários de <code>${f.code}</code> renumerados em sequência.` : 'A numeração já estava em sequência.');
+    }
+    else { const n = resequenceFurniture(f.zone, f.type); save(); select(f.code); toast(n ? `${TYPE[f.type]}s da Sala ${f.zone} renumerados em sequência (${n} alterados).` : 'A numeração já estava em sequência.'); }
+    return;
+  }
+  const ea = t.closest('[data-eq-act]');
+  if (ea) {
+    const q = eqById(ea.dataset.id);
+    if (!q) return;
+    const act = ea.dataset.eqAct;
+    if (act === 'lock') q.locked = !q.locked;
+    else if (act === 'rot') {
+      const cx = q.x + q.w / 2, cy = q.y + q.h / 2;
+      [q.w, q.h] = [q.h, q.w];
+      q.x = Math.round(clamp(cx - q.w / 2, VIEW.x, VIEW.x + VIEW.w - q.w));
+      q.y = Math.round(clamp(cy - q.h / 2, VIEW.y, VIEW.y + VIEW.h - q.h));
+    } else if (act === 'del') {
+      if (!(await uiConfirm(`Excluir “${q.name}” da planta?`))) return;
+      DB.equipment = getEquip().filter(x => x !== q); sel = null;
+    }
+    save(); return;
+  }
+  const ba = t.closest('[data-block-act]');
+  if (ba) {
+    const b = blockById(ba.dataset.id);
+    if (!b) return;
+    if (ba.dataset.blockAct === 'rot') {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2, R = b.alm ? VIEW : OUTER;
+      [b.w, b.h] = [Math.min(b.h, R.w), Math.min(b.w, R.h)];
+      b.x = Math.round(clamp(cx - b.w / 2, R.x, R.x + R.w - b.w));
+      b.y = Math.round(clamp(cy - b.h / 2, R.y, R.y + R.h - b.h));
+    } else if (ba.dataset.blockAct === 'del') {
+      if (!(await uiConfirm(`Excluir “${b.name || 'móvel fixo'}”?`))) return;
+      DB.blocks = getBlocks().filter(x => x !== b); sel = null;
+    }
+    save(); return;
+  }
+  const da = t.closest('[data-door-act]');
+  if (da) {
+    const d = getDoors().find(x => x.id === da.dataset.id);
+    if (!d) return;
+    if (da.dataset.doorAct === 'flip') d.side = -d.side;
+    else if (da.dataset.doorAct === 'hinge') d.hinge = !d.hinge;
+    else if (da.dataset.doorAct === 'del') { DB.doors = getDoors().filter(x => x !== d); sel = null; }
+    save(); return;
+  }
+  const fa = t.closest('[data-fact]'); if (fa) return furnAction(fa.dataset.fact, fa.dataset.code);
+  const cd = t.closest('[data-catdel]');
+  if (cd) {
+    if (DB.items.some(i => i.cat === cd.dataset.catdel)) { uiAlert('Há materiais com essa categoria. Altere-os antes de excluir.'); return; }
+    DB.categories = DB.categories.filter(c => c.id !== cd.dataset.catdel); save(); return;
+  }
+  const add = t.closest('[data-addhere]');
+  if (add) { resetItemForm(); prefillLocation(add.dataset.addhere); showTab('cadastro'); F.name.focus(); return; }
+  if (t.closest('input,select,textarea')) return;
+  const s = t.closest('[data-sel]');
+  if (s) { e.preventDefault(); select(s.dataset.sel); if (window.innerWidth < 900) $('.mapwrap').scrollIntoView({ behavior: 'smooth' }); }
+});
+
+$('#info').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.eqName || t.dataset.eqKind || t.dataset.eqFixed || t.dataset.eqNotes) {
+    const q = eqById(t.dataset.eqName || t.dataset.eqKind || t.dataset.eqFixed || t.dataset.eqNotes);
+    if (!q) return;
+    if (t.dataset.eqName) q.name = t.value.trim() || eqKind(q).name;
+    else if (t.dataset.eqKind) q.kind = t.value;
+    else if (t.dataset.eqFixed) { q.fixed = t.value === '1'; if (!q.fixed) q.locked = false; }
+    else q.notes = t.value.trim();
+    save(); return;
+  }
+  if (t.dataset.blockName) { const b = blockById(t.dataset.blockName); if (b) { b.name = t.value.trim(); save(); } return; }
+  if (t.dataset.blockHatch) { const b = blockById(t.dataset.blockHatch); if (b) { b.hatch = t.checked; save(); } return; }
+  if (t.dataset.doorLen) {
+    const d = getDoors().find(x => x.id === t.dataset.doorLen);
+    if (!d) return;
+    d.len = Math.max(10, Math.min(120, parseInt(t.value) || d.len));
+    const sn = snapToWall({ x: d.x + (d.o === 'v' ? d.side : 0), y: d.y + (d.o === 'h' ? d.side : 0) }, d.len);
+    if (sn) Object.assign(d, { x: sn.x, y: sn.y });
+    save(); return;
+  }
+  if (t.dataset.fnum) {
+    const f = furnByCode(t.dataset.fnum);
+    const n = parseInt(t.value);
+    if (!f || !(n >= 1 && n <= 99) || n === f.num) { renderInfo(); return; }
+    const old = f.code, swapped = renumberFurniture(f, n);
+    save(); select(f.code);
+    toast(swapped ? `<code>${old}</code> virou <code>${f.code}</code> e o antigo <code>${f.code}</code> virou <code>${swapped}</code>. Materiais atualizados.`
+                  : `<code>${old}</code> agora é <code>${f.code}</code>. Materiais atualizados.`);
+    return;
+  }
+  if (t.dataset.cnum) {
+    const u = unitByCode(t.dataset.unit);
+    const oldC = t.dataset.cnum, n = parseInt(t.value);
+    if (!u || !(n >= 1 && n <= 99) || n === +oldC.slice(1)) { renderInfo(); return; }
+    const newC = oldC[0] + n, swapped = renumberComp(u, oldC, newC);
+    save();
+    toast(swapped ? `<code>${u.code + oldC}</code> e <code>${u.code + newC}</code> trocaram de número. Materiais atualizados.`
+                  : `<code>${u.code + oldC}</code> agora é <code>${u.code + newC}</code>. Materiais atualizados.`);
+    return;
+  }
+  if (t.dataset.cabnum) {
+    const f = sel && sel.furn && furnByCode(sel.furn);
+    const cab = f && f.cabs.find(c => c.num === +t.dataset.cabnum), n = parseInt(t.value);
+    if (!cab || !(n >= 1 && n <= 99) || n === cab.num) { renderInfo(); return; }
+    const old = `${f.code}A${cab.num}`, swapped = renumberCab(f, cab, n);
+    save();
+    toast(swapped ? `<code>${old}</code> e <code>${f.code}A${n}</code> trocaram de número. Materiais atualizados.`
+                  : `<code>${old}</code> agora é <code>${f.code}A${n}</code>. Materiais atualizados.`);
+    return;
+  }
+  const key = t.dataset.fedit;
+  if (!key) return;
+  if (key === 'desc') { const f = sel && sel.furn && furnByCode(sel.furn); if (f) { f.desc = t.value.trim(); save(); } return; }
+  const u = unitByCode(t.dataset.unit);
+  if (!u) return;
+  const n = Math.max(0, Math.min(20, parseInt(t.value) || 0));
+  if (setCompCount(u, key === 'ng' ? 'G' : 'P', n)) save(); else renderInfo();
+});
+document.querySelectorAll('[data-draw]').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation();
+  drawMode === b.dataset.draw ? stopDraw() : startDraw(b.dataset.draw);
+}));
+
+/* ===================== ALMOXARIFADO ===================== */
+const LF = $('#loanForm');
+let loanEditing = null, loanFilter = 'open';
+function itemForEquip(name) {
+  const n = norm(name).trim();
+  return n ? DB.items.find(i => norm(i.name).trim() === n) : null;
+}
+function loanCard(l) {
+  const late = loanLate(l), open = loanOpen(l);
+  const it = l.itemId && DB.items.find(i => i.id === l.itemId);
+  const status = open ? (late ? '<span class="badge late">Atrasado</span>' : '<span class="badge open">Emprestado</span>') : '<span class="badge done">Devolvido</span>';
+  return `<div class="loan${late ? ' late' : ''}${open ? '' : ' done'}">
+    <div class="lt"><span>${esc(l.equip)}${l.qty ? ` <span class="muted" style="font-weight:400">· ${esc(l.qty)}</span>` : ''}</span>${status}</div>
+    <div class="ld">Para: <b>${esc(l.borrower)}</b> <span>(${BTYPE[l.btype] || 'Pessoa'})</span><br>
+      Emprestado em <b>${fmtDate(l.date)}</b> por <b>${esc(l.lender)}</b><br>
+      ${open ? (l.due ? `Devolução prevista: <b${late ? ' style="color:#c02626"' : ''}>${fmtDate(l.due)}</b>` : 'Sem data de devolução prevista')
+             : `Devolvido em <b>${fmtDate(l.returned)}</b>${l.returnedTo ? ` (recebido por ${esc(l.returnedTo)})` : ''}`}
+      ${it ? `<br>Lugar no inventário: <a href="#" data-sel="${esc(it.loc)}"><code>${esc(it.loc)}</code></a>` : ''}
+      ${l.notes ? `<br><i>${esc(l.notes)}</i>` : ''}</div>
+    <div class="actions">
+      ${open ? `<button class="btn small" data-loan-act="ret" data-id="${l.id}">✓ Marcar como devolvido</button>` : `<button class="btn small" data-loan-act="reopen" data-id="${l.id}">Reabrir</button>`}
+      <button class="btn small" data-loan-act="edit" data-id="${l.id}">Editar</button>
+      <button class="btn small" data-loan-act="del" data-id="${l.id}">Excluir</button>
+    </div></div>`;
+}
+function renderLoans() {
+  const q = norm($('#loanQ').value.trim());
+  let list = getLoans().filter(l =>
+    loanFilter === 'open' ? loanOpen(l) : loanFilter === 'late' ? loanLate(l) : loanFilter === 'done' ? !loanOpen(l) : true);
+  if (q) list = list.filter(l => [l.equip, l.borrower, l.lender, l.notes].some(v => norm(v).includes(q)));
+  list.sort((a, b) => (loanOpen(b) - loanOpen(a)) || (b.date || '').localeCompare(a.date || ''));
+  $('#loanList').innerHTML = list.map(loanCard).join('') || `<p class="muted">Nenhum empréstimo ${loanFilter === 'open' ? 'em aberto' : loanFilter === 'late' ? 'atrasado' : loanFilter === 'done' ? 'devolvido' : 'registrado'}.</p>`;
+  document.querySelectorAll('#loanFilter [data-lf]').forEach(b => b.classList.toggle('on', b.dataset.lf === loanFilter));
+  const uniq = arr => [...new Set(arr.filter(Boolean).map(v => v.trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  $('#itemNames').innerHTML = uniq([...DB.items.map(i => i.name), ...getEquip().map(q => q.name)]).map(n => `<option value="${esc(n)}">`).join('');
+  $('#borrowerNames').innerHTML = uniq(getLoans().map(l => l.borrower)).map(n => `<option value="${esc(n)}">`).join('');
+  $('#lenderNames').innerHTML = uniq(getLoans().flatMap(l => [l.lender, l.returnedTo])).map(n => `<option value="${esc(n)}">`).join('');
+  updateLoanLink();
+}
+function updateLoanLink() {
+  const it = itemForEquip(LF.equip.value), box = $('#loanLink');
+  if (!it) { box.style.display = 'none'; return; }
+  const l = openLoanForItem(it.id);
+  box.style.display = '';
+  box.innerHTML = `Ligado ao inventário: <b style="font-size:13px">${esc(it.name)}</b> em <code>${esc(it.loc)}</code>` +
+    (l && l.id !== loanEditing ? `<div style="color:#c02626;margin-top:4px">Atenção: já está emprestado para ${esc(l.borrower)} desde ${fmtDate(l.date)}.</div>` : '');
+}
+LF.equip.addEventListener('input', updateLoanLink);
+function resetLoanForm() {
+  loanEditing = null;
+  LF.reset();
+  LF.date.value = todayISO();
+  $('#loanTitle').textContent = 'Novo empréstimo';
+  $('#loanSave').textContent = 'Registrar empréstimo';
+  $('#loanCancel').style.display = 'none';
+  updateLoanLink();
+}
+function editLoan(id) {
+  const l = getLoans().find(x => x.id === id);
+  if (!l) return;
+  showTab('alm');
+  loanEditing = id;
+  LF.equip.value = l.equip; LF.qty.value = l.qty || ''; LF.date.value = l.date || '';
+  LF.btype.value = l.btype || 'pessoa'; LF.borrower.value = l.borrower; LF.lender.value = l.lender;
+  LF.due.value = l.due || ''; LF.notes.value = l.notes || '';
+  $('#loanTitle').textContent = 'Editar empréstimo';
+  $('#loanSave').textContent = 'Salvar alterações';
+  $('#loanCancel').style.display = '';
+  updateLoanLink();
+  LF.equip.focus();
+}
+onSubmit(LF, () => {
+  const it = itemForEquip(LF.equip.value);
+  const data = {
+    equip: LF.equip.value.trim(), qty: LF.qty.value.trim(), date: LF.date.value,
+    btype: LF.btype.value, borrower: LF.borrower.value.trim(), lender: LF.lender.value.trim(),
+    due: LF.due.value || '', notes: LF.notes.value.trim(), itemId: it ? it.id : null,
+  };
+  if (data.due && data.due < data.date) { toast('A devolução prevista está antes da data do empréstimo.'); LF.due.focus(); return; }
+  const wasEdit = !!loanEditing;
+  if (wasEdit) Object.assign(getLoans().find(l => l.id === loanEditing), data);
+  else getLoans().push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), returned: null, ...data });
+  resetLoanForm();
+  loanFilter = 'open';
+  save();
+  toast(`${wasEdit ? 'Empréstimo atualizado' : 'Empréstimo registrado'}: “${esc(data.equip)}” para ${esc(data.borrower)}.`);
+});
+$('#loanCancel').onclick = resetLoanForm;
+$('#loanQ').addEventListener('input', renderLoans);
+$('#loanFilter').addEventListener('click', e => {
+  const b = e.target.closest('[data-lf]');
+  if (b) { loanFilter = b.dataset.lf; renderLoans(); }
+});
+async function loanAction(act, id) {
+  const l = getLoans().find(x => x.id === id);
+  if (!l) return;
+  if (act === 'edit') return editLoan(id);
+  if (act === 'ret') {
+    if (!(await uiConfirm(`Confirmar a devolução de “${l.equip}” por ${l.borrower} hoje (${fmtDate(todayISO())})?`, 'Confirmar devolução', false))) return;
+    l.returned = todayISO();
+    toast(`“${esc(l.equip)}” marcado como devolvido.`);
+  } else if (act === 'reopen') {
+    l.returned = null; delete l.returnedTo;
+  } else if (act === 'del') {
+    if (!(await uiConfirm(`Excluir o registro do empréstimo de “${l.equip}” para ${l.borrower}?`))) return;
+    DB.loans = getLoans().filter(x => x !== l);
+    if (loanEditing === id) resetLoanForm();
+  }
+  save();
+}
+
+function renderAll() {
+  renderMap(); renderInfo(); renderResults(); renderTree();
+  renderFurnList(); renderCatList(); renderLegend(); renderLoans();
+  fillCatSelect();
+  const zv = F.zone.value, fv = F.furn.value, bv = F.cab.value, cv = F.comp.value;
+  fillZoneSelect(F.zone, zv || undefined);
+  fillFurnSelect(fv);
+  if (fv && furnByCode(fv)?.type === 'B') fillCabSelect(bv);
+  if (cv) fillCompSelect(cv);
+  const fz = FF.zone.value; fillZoneSelect(FF.zone, fz || undefined); updateFurnPreview();
+}
+
+boot().then(() => { if (!LF.date.value) LF.date.value = todayISO(); });
+</script>
+</body>
+</html>
