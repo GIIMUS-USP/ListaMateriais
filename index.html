@@ -439,8 +439,9 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
 <div id="modal" hidden><div class="mbox"><p id="mmsg"></p><div class="actions" style="justify-content:flex-end">
   <button class="btn" id="mcancel">Cancelar</button><button class="btn primary" id="mok">OK</button></div></div></div>
 <script>
-  
-/* ===================== SERVIDOR =====================*/
+/* ===================== SERVIDOR =====================
+   Cole aqui a URL do App da Web do Google Apps Script (termina em /exec).
+   Deixe vazio para usar o modo local (dados só neste navegador, sem login). */
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3RVtIvlcGUVEFQCToGKicL4-6AaQvTkrutOWKeL7qct2I-Q92IgJOJ5ANHKUR582v/exec';
 const MODO_LOCAL = !API_URL;
 
@@ -714,8 +715,26 @@ function setSync(state, msg) {
   el.textContent = txt[state] || '';
   el.title = msg || '';
 }
-async function api(action, payload = {}) {
-  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 45000);
+const SAFE_ACTIONS = ['getData', 'version', 'me', 'listUsers'];
+async function api(action, payload = {}, tentativa = 0) {
+  try { return await apiOnce(action, payload); }
+  catch (err) {
+    // leituras podem ser repetidas com segurança: tenta mais uma vez sozinho
+    if (!err.auth && tentativa === 0 && SAFE_ACTIONS.includes(action)) {
+      await new Promise(r => setTimeout(r, 1500));
+      return api(action, payload, 1);
+    }
+    throw err;
+  }
+}
+let warmed = false;
+function warmUp() {      // "acorda" o servidor do Google enquanto a pessoa digita
+  if (MODO_LOCAL || warmed) return;
+  warmed = true;
+  fetch(API_URL, { method: 'GET' }).catch(() => {});
+}
+async function apiOnce(action, payload) {
+  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 120000);
   let r;
   try {
     r = await fetch(API_URL, {
@@ -872,7 +891,7 @@ $('#resendBtn').addEventListener('click', async () => {
 /* ---------- tela de login ---------- */
 let authEmail = '', authInitial = '';
 function showAuth(view, msg, info) {
-  hideLoader();
+  hideLoader(); warmUp();
   $('#auth').hidden = false;
   ['loginForm', 'setupForm', 'forgotForm'].forEach(id => { $('#' + id).hidden = id !== view; });
   const m = $('#authMsg');
@@ -890,10 +909,15 @@ function busy(form, on, msg) {
     }
   });
   form.querySelectorAll('input').forEach(i => { i.readOnly = on; });
-  if (on) { const m = $('#authMsg'); m.hidden = false; m.className = 'authmsg info'; m.textContent = msg || 'Conectando ao servidor…'; }
+  clearTimeout(busy.t1); clearTimeout(busy.t2);
+  if (on) {
+    const m = $('#authMsg'); m.hidden = false; m.className = 'authmsg info'; m.textContent = msg || 'Conectando ao servidor…';
+    busy.t1 = setTimeout(() => { if (form.dataset.busy === '1') m.textContent = 'O servidor do Google está demorando um pouco para responder (costuma acontecer no primeiro acesso depois de um tempo parado). Aguarde…'; }, 8000);
+    busy.t2 = setTimeout(() => { if (form.dataset.busy === '1') m.textContent = 'Ainda aguardando o servidor… não feche a página.'; }, 30000);
+  }
 }
 function netError(err) {
-  if (err.timeout) return 'O servidor demorou demais para responder. Tente de novo em alguns segundos.';
+  if (err.timeout) return 'O servidor não respondeu em 2 minutos. Confira a sua internet e tente de novo; se continuar, avise um administrador.';
   if (err.badResponse) return 'O servidor respondeu de um jeito inesperado. Confira se a implantação do Apps Script está como "Qualquer pessoa" e numa versão nova.';
   return 'Sem conexão com o servidor. Tente de novo.';
 }
@@ -1078,6 +1102,7 @@ function normalize(d) {
   return d;
 }
 async function boot() {
+  warmUp();
   if (MODO_LOCAL) {
     try { const ls = localStorage.getItem(KEY); if (ls) DB = JSON.parse(ls); } catch (e) {}
     if (!DB) DB = await fetchShared();
