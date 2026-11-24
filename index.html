@@ -78,6 +78,7 @@ svg{max-width:100%;max-height:100%;height:100%;user-select:none}
 .zone.hl rect{fill:#fff3dc}
 .zlabel{font-size:46px;font-weight:700;fill:#1d2433;opacity:.08;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
 .zone.hl .zlabel{opacity:.25;fill:var(--hl)}
+.zcode{fill:#a3a9b6;font-weight:400}
 .ztag{font-size:10px;font-weight:600;fill:#6b7385;pointer-events:none}
 .fbody{fill:#e7ebf2;stroke:#4a5263;stroke-width:1.2}
 .furn{cursor:grab;touch-action:none}
@@ -295,7 +296,8 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
     </div>
 
     <div class="pane" id="zonas">
-      <p class="muted" style="margin-top:0">Formato do código: <code>3A1G2</code> = Sala 3 · Armário 1 · Gaveta 2. Use <code>A</code> para armário, <code>B</code> para bancada, <code>G</code> para gaveta e <code>P</code> para prateleira. Armários dentro de bancadas: <code>3B1A2G1</code> = Sala 3 · Bancada 1 · Armário 2 · Gaveta 1.</p>
+      <p class="muted" style="margin-top:0" id="roomCodes"></p>
+      <p class="muted" style="margin-top:0">Formato do código: <code>3A1G2</code> = sala de código 3 · Armário 1 · Gaveta 2. Use <code>A</code> para armário, <code>B</code> para bancada, <code>G</code> para gaveta e <code>P</code> para prateleira. Armários dentro de bancadas: <code>3B1A2G1</code> = sala 3 · Bancada 1 · Armário 2 · Gaveta 1.</p>
       <div id="tree"></div>
     </div>
 
@@ -387,6 +389,10 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
       <h3>Móveis cadastrados</h3>
       <div id="furnList"></div>
 
+      <h3>Nomes das salas</h3>
+      <p class="muted" style="margin-top:0">O número entre parênteses é o que vai no código (ex.: <code>3A1G2</code>). Mudar o nome não muda nenhum código.</p>
+      <div id="roomNames"></div>
+
       <h3>Categorias (cores)</h3>
       <div id="catList"></div>
       <form id="catForm" class="grid2" style="grid-template-columns:1fr 56px auto;align-items:end;margin-top:8px">
@@ -433,9 +439,8 @@ body.readonly .furn,body.readonly .block,body.readonly .equip,body.readonly .doo
 <div id="modal" hidden><div class="mbox"><p id="mmsg"></p><div class="actions" style="justify-content:flex-end">
   <button class="btn" id="mcancel">Cancelar</button><button class="btn primary" id="mok">OK</button></div></div></div>
 <script>
-/* ===================== SERVIDOR =====================
-   Cole aqui a URL do App da Web do Google Apps Script (termina em /exec).
-   Deixe vazio para usar o modo local (dados só neste navegador, sem login). */
+  
+/* ===================== SERVIDOR =====================*/
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3RVtIvlcGUVEFQCToGKicL4-6AaQvTkrutOWKeL7qct2I-Q92IgJOJ5ANHKUR582v/exec';
 const MODO_LOCAL = !API_URL;
 
@@ -443,11 +448,11 @@ const MODO_LOCAL = !API_URL;
    Coordenadas em unidades do SVG (viewBox 0 0 435 675).
    Para ajustar a planta, edite ZONES e FIXED. */
 const ZONES = [
-  { id: 7, x: 5,   y: 5,   w: 425, h: 140 },
-  { id: 6, x: 5,   y: 145, w: 425, h: 140 },
-  { id: 4, x: 5,   y: 285, w: 197, h: 140 },   // a sala 4 inclui o espaço da capela. Para esconder uma parede: open: ['r'] (t=cima, r=direita, b=baixo, l=esquerda)
-  { id: 5, x: 202, y: 285, w: 228, h: 140 },
-  { id: 3, x: 5,   y: 425, w: 425, h: 245 },
+  { id: 7, nome: 'Sala 105', x: 5,   y: 5,   w: 425, h: 140 },
+  { id: 6, nome: 'Sala 103', x: 5,   y: 145, w: 425, h: 140 },
+  { id: 4, nome: 'Capela', x: 5,   y: 285, w: 197, h: 140 },   // a sala 4 inclui o espaço da capela. Para esconder uma parede: open: ['r'] (t=cima, r=direita, b=baixo, l=esquerda)
+  { id: 5, nome: 'Sala In vivo', x: 202, y: 285, w: 228, h: 140 },
+  { id: 3, nome: 'Sala 101', x: 5,   y: 425, w: 425, h: 245 },
 ];
 const OUTER = { x: 5, y: 5, w: 425, h: 665 };
 const VIEW = { x: 2, y: 2, w: 541, h: 671 };   // área total do desenho (inclui o lado de fora do laboratório)
@@ -468,9 +473,18 @@ const EQICON = {   // desenhos em uma grade de 24×24
 const getEquip = () => DB.equipment || (DB.equipment = []);
 const eqById = id => getEquip().find(q => q.id === id);
 const eqKind = q => EQKINDS[q.kind] || EQKINDS.outro;
+/* Nome de cada sala: o número do código (3, 4, 5…) continua o mesmo; muda só o nome mostrado.
+   Os nomes podem ser trocados em Configurar → Nomes das salas. */
+function salaNome(id) {
+  const n = DB && DB.roomNames && DB.roomNames[id];
+  if (n && String(n).trim()) return String(n).trim();
+  const z = ZONES.find(z => z.id === +id);
+  return (z && z.nome) || `Sala ${id}`;
+}
+const salaCurta = id => salaNome(id).replace(/^sala\s+/i, '');
 function roomAt(x, y) {
   const z = ZONES.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
-  if (z) return `Sala ${z.id}`;
+  if (z) return salaNome(z.id);
   return x >= OUTER.x && x <= OUTER.x + OUTER.w && y >= OUTER.y && y <= OUTER.y + OUTER.h ? 'Laboratório' : 'Fora do laboratório';
 }
 const eqRoom = q => roomAt(q.x + q.w / 2, q.y + q.h / 2);
@@ -631,7 +645,7 @@ function parseLoc(code) {
 function locLabel(code) {
   const p = parseLoc(code);
   if (!p) return code;
-  const parts = [`Sala ${p.zone}`];
+  const parts = [salaNome(p.zone)];
   if (p.furn) parts.push(`${TYPE[p.type]} ${p.num}`);
   if (p.cab) parts.push(`Armário ${p.cabNum}`);
   if (p.comp) parts.push(`${CTYPE[p.ctype]} ${p.cnum}`);
@@ -1136,8 +1150,8 @@ function renderMap() {
     const on = sel && sel.zone === z.id;
     s.push(`<g class="zone${on ? ' hl' : ''}" data-zone="${z.id}">
       <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}"/>
-      <text class="zlabel" x="${z.x + z.w / 2}" y="${z.y + z.h / 2}">${z.id}</text>
-      <text class="ztag" x="${z.x + 6}" y="${z.y + 14}">S${z.id}</text></g>`);
+      <text class="zlabel" x="${z.x + z.w / 2}" y="${z.y + z.h / 2}" style="font-size:${Math.max(16, Math.min(46, (z.w * 0.8) / Math.max(1, salaCurta(z.id).length) * 1.7, z.h * 0.4))}px">${esc(salaCurta(z.id))}</text>
+      <text class="ztag" x="${z.x + 6}" y="${z.y + 14}">${esc(salaNome(z.id))} <tspan class="zcode">(${z.id})</tspan></text></g>`);
   });
 
   const nq = norm($('#q').value.trim());
@@ -1424,7 +1438,7 @@ svg.addEventListener('click', e => {
     const p = svgPoint(e);
     f.x = Math.round(p.x - f.w / 2); f.y = Math.round(p.y - f.h / 2);
     const z = ZONES.find(z => p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h);
-    if (z && z.id !== f.zone) uiAlert(`Atenção: o ponto clicado fica na Sala ${z.id}, mas o móvel ${f.code} pertence à Sala ${f.zone}.`);
+    if (z && z.id !== f.zone) uiAlert(`Atenção: o ponto clicado fica em ${salaNome(z.id)}, mas o móvel ${f.code} pertence a ${salaNome(f.zone)}.`);
     placing = null;
     document.body.classList.remove('placing');
     $('#banner').classList.remove('on');
@@ -1646,7 +1660,7 @@ function renderInfoInner() {
     html += `<h3>Editar ${TYPE[f.type].toLowerCase()}</h3>
       <div class="grid2" style="grid-template-columns:110px 1fr;align-items:end">
         <div><label>Número</label><input type="number" min="1" max="99" data-fnum="${f.code}" value="${f.num}"></div>
-        <div><button class="btn small" data-renum="furn" data-code="${f.code}" style="margin-bottom:4px" title="Fecha os buracos na numeração (ex.: 1, 2, 4 → 1, 2, 3)">Renumerar ${TYPE[f.type].toLowerCase()}s da Sala ${f.zone} em sequência</button></div>
+        <div><button class="btn small" data-renum="furn" data-code="${f.code}" style="margin-bottom:4px" title="Fecha os buracos na numeração (ex.: 1, 2, 4 → 1, 2, 3)">Renumerar ${TYPE[f.type].toLowerCase()}s de ${esc(salaNome(f.zone))} em sequência</button></div>
       </div>
       <label>Descrição</label><input data-fedit="desc" value="${esc(f.desc)}" placeholder="${f.type === 'B' ? 'Ex.: Bancada de eletrônica' : 'Ex.: Armário de vidrarias'}">`;
     if (f.type === 'B') {
@@ -1693,7 +1707,7 @@ function searchItems(q) {
   const nq = norm(q);
   return DB.items.filter(it =>
     norm(it.name).includes(nq) || norm(it.notes).includes(nq) ||
-    norm(it.loc).includes(nq) || norm(cat(it.cat).name).includes(nq));
+    norm(it.loc).includes(nq) || norm(cat(it.cat).name).includes(nq) || norm(locLabel(it.loc)).includes(nq));
 }
 
 function itemRow(it) {
@@ -1737,12 +1751,17 @@ $('#q').addEventListener('input', () => {
 });
 
 /* ===================== ÁRVORE DE ZONAS ===================== */
+function renderRoomCodes() {
+  $('#roomCodes').innerHTML = '<b>O primeiro número do código é a sala:</b> ' +
+    [...ZONES].sort((a, b) => a.id - b.id).map(z => `<code>${z.id}</code> = ${esc(salaNome(z.id))}`).join(' · ');
+}
 function renderTree() {
+  renderRoomCodes();
   const zones = [...ZONES].sort((a, b) => a.id - b.id);
   $('#tree').innerHTML = zones.map(z => {
     const furns = DB.furniture.filter(f => f.zone === z.id).sort((a, b) => a.code.localeCompare(b.code));
     const n = itemsAt({ zone: z.id }).length;
-    return `<details open><summary><span data-sel="${z.id}">Sala ${z.id}</span><span class="count">${furns.length} móveis · ${n} itens</span></summary>
+    return `<details open><summary><span data-sel="${z.id}">${esc(salaNome(z.id))} <span class="muted" style="font-weight:400">· código ${z.id}</span></span><span class="count">${furns.length} móveis · ${n} itens</span></summary>
       <div class="tf">${furns.map(f => `
         <div class="tfh" data-sel="${f.code}"><code>${f.code}</code> ${TYPE[f.type]} ${f.num}${f.desc ? ` <span class="muted">— ${esc(f.desc)}</span>` : ''}</div>
         ${unitsOf(f).map(u => (f.type === 'B' ? `<div class="tc" data-sel="${u.code}" style="padding-left:24px;font-weight:500"><code>${u.code}</code> Armário ${u.num} <span class="muted">· ${itemsAt({ cab: u.code }).length}</span></div>` : '') +
@@ -1780,7 +1799,7 @@ function onSubmit(form, handler) {
 /* ===================== CADASTRO DE MATERIAL ===================== */
 const F = $('#itemForm');
 function fillZoneSelect(selEl, value) {
-  selEl.innerHTML = [...ZONES].sort((a, b) => a.id - b.id).map(z => `<option value="${z.id}">Sala ${z.id}</option>`).join('');
+  selEl.innerHTML = [...ZONES].sort((a, b) => a.id - b.id).map(z => `<option value="${z.id}">${esc(salaNome(z.id))} (${z.id})</option>`).join('');
   if (value != null) selEl.value = value;
 }
 function fillFurnSelect(value) {
@@ -1897,7 +1916,7 @@ function updateFurnPreview() {
   $('#ncWrap').style.display = isB ? '' : 'none';
   $('#ngLabel').textContent = isB ? 'Gavetas em cada armário' : 'Nº de gavetas';
   $('#npLabel').textContent = isB ? 'Prateleiras em cada armário' : 'Nº de prateleiras';
-  $('#furnPreview').textContent = `${n.code} (${TYPE[n.t]} ${n.num} da Sala ${n.z})`;
+  $('#furnPreview').textContent = `${n.code} (${TYPE[n.t]} ${n.num} de ${salaNome(n.z)})`;
 }
 FF.zone.onchange = FF.type.onchange = updateFurnPreview;
 onSubmit(FF, e => {
@@ -1915,7 +1934,7 @@ onSubmit(FF, e => {
   save();
   select(n.code);
   const b = $('#banner');
-  b.innerHTML = `<code>${n.code}</code> foi criado no meio da Sala ${n.z}. Arraste-o na planta até o lugar certo.`;
+  b.innerHTML = `<code>${n.code}</code> foi criado no meio de ${esc(salaNome(n.z))}. Arraste-o na planta até o lugar certo.`;
   b.classList.add('on');
   setTimeout(() => b.classList.remove('on'), 6000);
 });
@@ -1971,6 +1990,18 @@ async function furnAction(act, code) {
 }
 
 /* ===================== CONFIGURAÇÃO: CATEGORIAS ===================== */
+function renderRoomNames() {
+  $('#roomNames').innerHTML = [...ZONES].sort((a, b) => a.id - b.id).map(z => `
+    <div class="row" style="cursor:default"><code style="min-width:34px;text-align:center">${z.id}</code>
+      <input data-roomname="${z.id}" value="${esc(salaNome(z.id))}" placeholder="${esc(z.nome || 'Sala ' + z.id)}" style="flex:1"></div>`).join('');
+}
+$('#roomNames').addEventListener('change', e => {
+  const t = e.target.closest('[data-roomname]'); if (!t) return;
+  DB.roomNames = DB.roomNames || {};
+  const v = t.value.trim(), z = ZONES.find(z => z.id === +t.dataset.roomname);
+  if (!v || (z && v === z.nome)) delete DB.roomNames[t.dataset.roomname]; else DB.roomNames[t.dataset.roomname] = v;
+  save();
+});
 function renderCatList() {
   $('#catList').innerHTML = DB.categories.map(c => {
     const n = DB.items.filter(i => i.cat === c.id).length;
@@ -2092,7 +2123,7 @@ document.addEventListener('click', async e => {
       const n = resequenceCabs(f); save(); select(f.code);
       toast(n ? `Armários de <code>${f.code}</code> renumerados em sequência.` : 'A numeração já estava em sequência.');
     }
-    else { const n = resequenceFurniture(f.zone, f.type); save(); select(f.code); toast(n ? `${TYPE[f.type]}s da Sala ${f.zone} renumerados em sequência (${n} alterados).` : 'A numeração já estava em sequência.'); }
+    else { const n = resequenceFurniture(f.zone, f.type); save(); select(f.code); toast(n ? `${TYPE[f.type]}s de ${esc(salaNome(f.zone))} renumerados em sequência (${n} alterados).` : 'A numeração já estava em sequência.'); }
     return;
   }
   const ea = t.closest('[data-eq-act]');
@@ -2326,7 +2357,7 @@ async function loanAction(act, id) {
 
 function renderAll() {
   renderMap(); renderInfo(); renderResults(); renderTree();
-  renderFurnList(); renderCatList(); renderLegend(); renderLoans();
+  renderFurnList(); renderCatList(); renderRoomNames(); renderLegend(); renderLoans();
   fillCatSelect();
   const zv = F.zone.value, fv = F.furn.value, bv = F.cab.value, cv = F.comp.value;
   fillZoneSelect(F.zone, zv || undefined);
